@@ -110,17 +110,19 @@ async fn post(
 
     let code = value_i64(&parsed, "code").unwrap_or(-1);
     if code != 200 {
-        let message = parsed
-            .get("code_msg")
-            .and_then(Value::as_str)
-            .filter(|value| !value.trim().is_empty())
-            .or_else(|| parsed.get("code_reason").and_then(Value::as_str))
-            .map(ToString::to_string)
-            .unwrap_or_else(|| match status.as_u16() {
-                401 | 403 => "API Key 无效或已过期".to_string(),
-                429 => "请求过于频繁，请稍后重试".to_string(),
-                _ => format!("Funcloud 查询失败 (HTTP {status}, code {code})"),
-            });
+        let message = match status.as_u16() {
+            401 | 403 => "API Key 无效或已过期".to_string(),
+            429 => "请求过于频繁，请稍后重试".to_string(),
+            // 实测：无效 Key 返回 HTTP 200 + {code:-1, code_msg:"no response"}
+            _ if code < 0 => "Funcloud 未返回数据，请在设置中检查 API Key 是否有效".to_string(),
+            _ => parsed
+                .get("code_msg")
+                .and_then(Value::as_str)
+                .filter(|value| !value.trim().is_empty())
+                .or_else(|| parsed.get("code_reason").and_then(Value::as_str))
+                .map(ToString::to_string)
+                .unwrap_or_else(|| format!("Funcloud 查询失败 (HTTP {status}, code {code})")),
+        };
         return Err(message);
     }
 
@@ -192,7 +194,7 @@ fn parse_summary(value: &Value) -> FuncloudSummary {
 }
 
 fn parse_daily(value: &Value) -> Vec<DailyUsage> {
-    value
+    let mut rows = value
         .get("list")
         .and_then(Value::as_array)
         .map(|items| {
@@ -213,7 +215,11 @@ fn parse_daily(value: &Value) -> Vec<DailyUsage> {
                 })
                 .collect()
         })
-        .unwrap_or_default()
+        .unwrap_or_default();
+
+    // 接口按日期倒序返回，图表与合计需要正序。
+    rows.sort_by(|a, b| a.date.cmp(&b.date));
+    rows
 }
 
 fn parse_models(value: &Value) -> Vec<ModelUsage> {
@@ -340,11 +346,13 @@ mod tests {
 
         let daily = json!({
             "list": [
-                { "date": "2026-11-03", "req_cnt": 4, "inputs": 100, "outputs": 50, "cost": "0.42" }
+                { "date": "2026-11-03", "req_cnt": 4, "inputs": 100, "outputs": 50, "cost": "0.42" },
+                { "date": "2026-11-01", "req_cnt": 1, "inputs": 10, "outputs": 5, "cost": 0.1 }
             ]
         });
         let rows = parse_daily(&daily);
-        assert_eq!(rows.len(), 1);
-        assert!((rows[0].cost - 0.42).abs() < f64::EPSILON);
+        assert_eq!(rows.len(), 2);
+        assert_eq!(rows[0].date, "2026-11-01");
+        assert!((rows[1].cost - 0.42).abs() < f64::EPSILON);
     }
 }
