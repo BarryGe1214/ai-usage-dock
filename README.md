@@ -17,11 +17,6 @@
 - **安全存储**：Funcloud API Key 保存在 Windows 凭据管理器（Linux 使用 Secret Service，macOS 使用 Keychain），不写入配置文件。
 - **自动刷新**：默认每 2 分钟刷新一次，可在设置中调整；支持开机自启。
 
-## 截图
-
-<!-- 截图占位：发布前可替换为 docs/preview.png -->
-> 运行 `npm run dev` 后可在浏览器中查看带示例数据的界面预览。
-
 ## 数据来源
 
 | 供应商 | 来源 | 说明 |
@@ -29,7 +24,9 @@
 | OpenAI Codex | 本机 `codex app-server` 的 `account/rateLimits/read` | 与 Codex CLI 当前登录账号一致；不是 ChatGPT 网页 token 抓取 |
 | Funcloud | `https://api.funcloud.ai/v1/model/key-usage/*` | `limit`、`summary`、`daily`、`models` 接口；仅使用 API Key 查询 |
 
-Funcloud 的查询接口来自其公开用量页面 `https://funcloud.ai/key-usage` 所使用的同一套接口。该接口不是正式文档化的 OpenAPI，若官方改版，Provider 可能需要同步调整。
+Funcloud 的查询接口来自其公开用量页面 `https://funcloud.ai/key-usage` 所使用的同一套接口，实际 API 域名为 `api.funcloud.ai`。该接口不是正式文档化的 OpenAPI，若官方改版，Provider 可能需要同步调整。
+
+Codex 的 `app-server` 协议由本机 Codex CLI 提供，不同 Codex 版本可能存在字段差异。
 
 ## 快速开始
 
