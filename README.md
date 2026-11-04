@@ -94,16 +94,17 @@ npm run tauri build
 
 ### GitHub Actions
 
-`ci/github-actions/ci.yml` 和 `ci/github-actions/release.yml` 是可直接使用的 GitHub Actions 工作流模板：
+`ci/github-actions/ci.yml.txt` 和 `ci/github-actions/release.yml.txt` 是可直接使用的 GitHub Actions 工作流内容：
 
-- `ci.yml`：push / PR 时构建前端并运行 Rust 测试。
-- `release.yml`：手动触发或推送 `v*` tag 时构建 Windows NSIS / MSI 安装包。
+- `ci.yml.txt`：push / PR 时构建前端并运行 Rust 测试。
+- `release.yml.txt`：手动触发或推送 `v*` tag 时构建 Windows NSIS / MSI 安装包。
 
-GitHub 对 `.github/workflows/` 下的文件要求额外的 `workflow` scope。创建本仓库时使用的自动化 token 只有 `repo` scope，因此这两个文件暂时放在 `ci/github-actions/`。使用带 `workflow` 权限的 GitHub 账号把它移动到 `.github/workflows/` 并提交，即可启用：
+GitHub 对 `.github/workflows/` 下的文件要求额外的 `workflow` scope。创建本仓库时使用的自动化 token 只有 `repo` scope，因此工作流内容以 `.yml.txt` 形式提供。使用带 `workflow` 权限的 GitHub 账号把它们复制为正式路径并提交，即可启用：
 
 ```bash
 mkdir -p .github/workflows
-cp ci/github-actions/*.yml .github/workflows/
+cp ci/github-actions/ci.yml.txt .github/workflows/ci.yml
+cp ci/github-actions/release.yml.txt .github/workflows/release.yml
 git add .github/workflows
 git commit -m "ci: enable GitHub Actions"
 git push
@@ -166,7 +167,7 @@ AI Usage Dock is a Windows-first desktop widget for monitoring **OpenAI Codex** 
 - Codex data comes from the locally signed-in `codex app-server` (`account/rateLimits/read`), not from scraped ChatGPT cookies.
 - Funcloud data comes from the same endpoints used by `https://funcloud.ai/key-usage`.
 - Secrets are stored in Windows Credential Manager / Secret Service / Keychain.
-- Windows installers can be built by GitHub Actions once the workflow templates in `ci/github-actions/` are moved to `.github/workflows/`. Linux and macOS builds are planned.
+- Windows installers can be built by GitHub Actions once the workflow templates in `ci/github-actions/*.yml.txt` are copied to `.github/workflows/`. Linux and macOS builds are planned.
 
 ## Privacy
 
