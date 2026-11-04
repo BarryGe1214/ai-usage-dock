@@ -282,6 +282,7 @@ fn parse_window(value: Option<&Value>, id: &str) -> Option<QuotaWindow> {
     let resets_at = match value.get("resetsAt") {
         Some(Value::Number(number)) => number
             .as_i64()
+            .or_else(|| number.as_f64().map(|value| value.round() as i64))
             .and_then(|seconds| DateTime::<Utc>::from_timestamp(seconds, 0))
             .map(|value| value.to_rfc3339()),
         Some(Value::String(text)) => DateTime::parse_from_rfc3339(text)

@@ -265,7 +265,9 @@ fn timestamp_to_rfc3339(timestamp: i64) -> Option<String> {
 
 fn value_i64(value: &Value, key: &str) -> Option<i64> {
     match value.get(key)? {
-        Value::Number(number) => number.as_i64(),
+        Value::Number(number) => number
+            .as_i64()
+            .or_else(|| number.as_f64().map(|value| value.round() as i64)),
         Value::String(text) => text.trim().parse::<i64>().ok(),
         _ => None,
     }
