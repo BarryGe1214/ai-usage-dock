@@ -41,7 +41,7 @@ Funcloud 的查询接口来自其公开用量页面 `https://funcloud.ai/key-usa
 
 ### 安装
 
-从 [Releases](https://github.com/BarryGe1214/ai-usage-dock/releases) 下载安装包：
+从 [Releases](https://github.com/BarryGe1214/ai-usage-dock/releases) 下载安装包（需要先启用 release workflow 并触发一次构建）：
 
 - `AI Usage Dock_0.1.0_x64-setup.exe`：NSIS 当前用户安装
 - `AI Usage Dock_0.1.0_x64_en-US.msi`：MSI 安装包
@@ -91,6 +91,23 @@ npm run tauri build
 ```
 
 产物位于 `src-tauri/target/release/bundle/`。
+
+### GitHub Actions
+
+`ci/github-actions/ci.yml` 和 `ci/github-actions/release.yml` 是可直接使用的 GitHub Actions 工作流模板：
+
+- `ci.yml`：push / PR 时构建前端并运行 Rust 测试。
+- `release.yml`：手动触发或推送 `v*` tag 时构建 Windows NSIS / MSI 安装包。
+
+GitHub 对 `.github/workflows/` 下的文件要求额外的 `workflow` scope。创建本仓库时使用的自动化 token 只有 `repo` scope，因此这两个文件暂时放在 `ci/github-actions/`。使用带 `workflow` 权限的 GitHub 账号把它移动到 `.github/workflows/` 并提交，即可启用：
+
+```bash
+mkdir -p .github/workflows
+cp ci/github-actions/*.yml .github/workflows/
+git add .github/workflows
+git commit -m "ci: enable GitHub Actions"
+git push
+```
 
 ### Linux 依赖（预留）
 
@@ -149,7 +166,7 @@ AI Usage Dock is a Windows-first desktop widget for monitoring **OpenAI Codex** 
 - Codex data comes from the locally signed-in `codex app-server` (`account/rateLimits/read`), not from scraped ChatGPT cookies.
 - Funcloud data comes from the same endpoints used by `https://funcloud.ai/key-usage`.
 - Secrets are stored in Windows Credential Manager / Secret Service / Keychain.
-- Windows installers are built by GitHub Actions. Linux and macOS builds are planned.
+- Windows installers can be built by GitHub Actions once the workflow templates in `ci/github-actions/` are moved to `.github/workflows/`. Linux and macOS builds are planned.
 
 ## Privacy
 
