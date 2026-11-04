@@ -1,0 +1,54 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "AI Usage Dock",
+  "version": "0.1.0",
+  "identifier": "com.barryge1214.aiusagedock",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "AI Usage Dock",
+        "width": 404,
+        "height": 470,
+        "visible": false,
+        "transparent": true,
+        "decorations": false,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "resizable": false,
+        "shadow": false,
+        "focus": true
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "category": "Productivity",
+    "shortDescription": "Desktop dock for OpenAI Codex and Funcloud API quota.",
+    "longDescription": "AI Usage Dock shows your OpenAI Codex rate limits and Funcloud API key usage in a floating widget, docked sidebar, or tray panel. Multiple Funcloud accounts are supported and secrets are stored in the operating system credential store.",
+    "copyright": "Copyright © 2026 BarryGe1214",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.png",
+      "icons/icon.ico"
+    ],
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser",
+        "displayLanguageSelector": true
+      }
+    }
+  }
+}
