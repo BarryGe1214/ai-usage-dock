@@ -80,13 +80,17 @@ jobs:
           WIDGET_SIGNING_PFX_BASE64: ${{ secrets.WIDGET_SIGNING_PFX_BASE64 }}
           WIDGET_SIGNING_PFX_PASSWORD: ${{ secrets.WIDGET_SIGNING_PFX_PASSWORD }}
         run: |
+          if (-not $env:WIDGET_SIGNING_PFX_BASE64) {
+            throw "WIDGET_SIGNING_PFX_BASE64 is not configured. The app installs the widget automatically and pins the signing certificate, so a temporary certificate would break widget updates."
+          }
           $pfx = Join-Path $env:RUNNER_TEMP "widget-signing.pfx"
-          if ($env:WIDGET_SIGNING_PFX_BASE64) {
-            [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:WIDGET_SIGNING_PFX_BASE64))
-            ./widget-provider/build-widget.ps1 -OutputDir ./artifacts/widget -PfxPath $pfx -PfxPassword $env:WIDGET_SIGNING_PFX_PASSWORD
-          } else {
-            Write-Warning "WIDGET_SIGNING_PFX_BASE64 is not configured. A temporary certificate will be generated, so users must trust the new .cer after each widget update."
-            ./widget-provider/build-widget.ps1 -OutputDir ./artifacts/widget
+          [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:WIDGET_SIGNING_PFX_BASE64))
+          ./widget-provider/build-widget.ps1 -OutputDir ./artifacts/widget -PfxPath $pfx -PfxPassword $env:WIDGET_SIGNING_PFX_PASSWORD
+
+          $certificate = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2((Resolve-Path ./artifacts/widget/AIUsageDock.Widget.cer).Path)
+          $expected = "C2A01C2B80A834302C5982151E0AA28F93A68911"
+          if ($certificate.Thumbprint -ne $expected) {
+            throw "Widget certificate thumbprint $($certificate.Thumbprint) does not match the pinned $expected. Update WIDGET_SIGNING_PFX_BASE64 or the pin in src-tauri/src/widget_install.rs."
           }
       - name: Build and publish
         uses: tauri-apps/tauri-action@v0
@@ -101,7 +105,7 @@ jobs:
             AI Usage Dock __VERSION__
 
             - Windows installers: NSIS (recommended) and MSI.
-            - Windows 11 native widget: download AIUsageDock.Widget.msix, AIUsageDock.Widget.cer and install-widget.ps1, then run install-widget.ps1.
+            - Windows 11 native widget: installed and updated automatically by the app. Manual fallback files (AIUsageDock.Widget.msix, AIUsageDock.Widget.cer, install-widget.ps1) are attached too.
             - Existing installations can update in place from Settings → Software update.
           releaseDraft: ${{ github.event_name == 'workflow_dispatch' && inputs.draft }}
           prerelease: false

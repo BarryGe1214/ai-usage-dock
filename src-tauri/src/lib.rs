@@ -6,6 +6,7 @@ mod providers;
 mod state;
 mod tray;
 mod widget_feed;
+mod widget_install;
 mod window;
 
 use tauri::{Manager, WindowEvent};
@@ -32,6 +33,7 @@ pub fn run() {
                 .map_err(|error| format!("无法初始化 HTTP 客户端: {error}"))?;
 
             app.manage(state::AppState::new(config.clone(), snapshots, client));
+            app.manage(widget_install::WidgetInstaller::new());
             let initial_snapshots = app.state::<state::AppState>().snapshot_list();
             widget_feed::write(app.handle(), &initial_snapshots);
             tray::setup(app.handle())?;
@@ -64,6 +66,7 @@ pub fn run() {
             }
 
             state::spawn_scheduler(app.handle().clone());
+            widget_install::spawn_auto_install(app.handle().clone());
             Ok(())
         })
         .on_window_event(|window, event| match event {
@@ -110,6 +113,8 @@ pub fn run() {
             commands::install_update,
             commands::restart_app,
             commands::open_url,
+            widget_install::widget_status,
+            widget_install::install_widget,
         ])
         .run(tauri::generate_context!())
         .expect("error while running AI Usage Dock");

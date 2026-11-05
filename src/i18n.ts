@@ -170,6 +170,18 @@ const zh = {
   updateRestart: "重启应用",
   upToDate: "已是最新版本",
   updateError: "更新失败",
+  systemWidget: "Windows 11 小组件",
+  systemWidgetHint: "随应用自动安装并更新，显示在系统小组件面板（Win+W）",
+  widgetInstall: "安装",
+  widgetUpdate: "更新",
+  widgetReinstall: "重新安装",
+  widgetInstalling: "安装中...",
+  widgetInstalled: "小组件已安装",
+  widgetInstalledVersion: "已安装 v{value}",
+  widgetNotInstalled: "未安装",
+  widgetDownloading: "下载中 {value}%",
+  widgetUnsupported: "需要 Windows 11 22H2 或更高版本",
+  widgetError: "安装失败",
 };
 
 export type TranslationKey = keyof typeof zh;
@@ -344,6 +356,18 @@ const en: Record<TranslationKey, string> = {
   updateRestart: "Restart app",
   upToDate: "You're up to date",
   updateError: "Update failed",
+  systemWidget: "Windows 11 widget",
+  systemWidgetHint: "Installed and updated with the app for the Windows widgets board (Win+W)",
+  widgetInstall: "Install",
+  widgetUpdate: "Update",
+  widgetReinstall: "Reinstall",
+  widgetInstalling: "Installing...",
+  widgetInstalled: "Widget installed",
+  widgetInstalledVersion: "Installed v{value}",
+  widgetNotInstalled: "Not installed",
+  widgetDownloading: "Downloading {value}%",
+  widgetUnsupported: "Requires Windows 11 22H2 or later",
+  widgetError: "Install failed",
 };
 
 export function makeTranslator(language: Language) {

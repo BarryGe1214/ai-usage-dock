@@ -9,6 +9,7 @@ import {
   EyeOff,
   KeyRound,
   Languages,
+  LayoutGrid,
   LogOut,
   Monitor,
   Pencil,
@@ -22,10 +23,13 @@ import {
 } from "lucide-react";
 
 import type { Translator } from "../i18n";
-import type { AccountView, AppConfig, CodexCheck, UpdateState, UsageSnapshot } from "../types";
+import type { AccountView, AppConfig, CodexCheck, UpdateState, UsageSnapshot, WidgetStatus } from "../types";
 import {
   addFuncloudAccount,
   checkCodex,
+  getWidgetStatus,
+  installWidget,
+  onWidgetStatus,
   openUrl,
   quitApp,
   removeAccount,
@@ -88,9 +92,32 @@ export function SettingsPage({
   const [deleteTarget, setDeleteTarget] = useState<AccountView | null>(null);
   const [toast, setToast] = useState<ToastState | null>(null);
   const [baseUrl, setBaseUrl] = useState(config.funcloudBaseUrl);
+  const [widget, setWidget] = useState<WidgetStatus | null>(null);
 
   useEffect(() => setDraft(config), [config]);
   useEffect(() => setBaseUrl(config.funcloudBaseUrl), [config.funcloudBaseUrl]);
+  useEffect(() => {
+    let disposed = false;
+    let unlisten: (() => void) | undefined;
+    void (async () => {
+      try {
+        const status = await getWidgetStatus();
+        if (!disposed) setWidget(status);
+      } catch {
+        // 旧系统或 PowerShell 被策略限制时保持未知状态，不影响其他设置。
+      }
+      const stop = await onWidgetStatus((status) => setWidget(status));
+      if (disposed) {
+        stop();
+      } else {
+        unlisten = stop;
+      }
+    })();
+    return () => {
+      disposed = true;
+      unlisten?.();
+    };
+  }, []);
   useEffect(() => {
     if (!toast) return;
     const timer = window.setTimeout(() => setToast(null), 2800);
@@ -231,6 +258,59 @@ export function SettingsPage({
           : codexState
             ? t("codexNotInstalled")
             : t("notAvailable");
+
+  const widgetPhase = widget?.phase ?? "idle";
+  const widgetInstalling =
+    widgetPhase === "checking" ||
+    widgetPhase === "downloading" ||
+    widgetPhase === "installing";
+  const widgetPercent = widget?.total
+    ? Math.min(100, Math.round((widget.downloaded / widget.total) * 100))
+    : 0;
+  const widgetOutdated = Boolean(
+    widget?.installed &&
+      widget.installedVersion &&
+      widget.installedVersion !== widget.targetVersion,
+  );
+  const widgetLabel = !widget
+    ? t("notAvailable")
+    : !widget.supported
+      ? t("widgetUnsupported")
+      : widgetPhase === "downloading"
+        ? t("widgetDownloading", { value: widgetPercent })
+        : widgetInstalling
+          ? t("widgetInstalling")
+          : widget.error
+            ? t("widgetError")
+            : widget.installed
+              ? t("widgetInstalledVersion", {
+                  value: widget.installedVersion ?? widget.targetVersion,
+                })
+              : t("widgetNotInstalled");
+  const widgetTone = !widget
+    ? "disabled"
+    : !widget.supported || widget.error
+      ? "error"
+      : widgetInstalling
+        ? "loading"
+        : widget.installed
+          ? "ok"
+          : "disabled";
+
+  async function handleInstallWidget() {
+    if (widgetInstalling) return;
+    try {
+      const status = await installWidget(true);
+      setWidget(status);
+      if (status.error) {
+        showToast(status.error, "error");
+      } else if (status.installed) {
+        showToast(t("widgetInstalled"));
+      }
+    } catch (error) {
+      showToast(errorMessage(error), "error");
+    }
+  }
 
   return (
     <div className="settings-window">
@@ -566,6 +646,44 @@ export function SettingsPage({
                 </button>
               </div>
             </SettingRow>
+          </div>
+        </section>
+
+        <section className="settings-section">
+          <h2>{t("systemWidget")}</h2>
+          <div className="settings-card">
+            <SettingRow
+              icon={<LayoutGrid size={16} />}
+              label={t("systemWidget")}
+              description={t("systemWidgetHint")}
+            >
+              <div className="account-settings-actions">
+                <span className={`status-pill status-${widgetTone}`}>
+                  <span className="status-dot" />
+                  {widgetLabel}
+                </span>
+                <button
+                  className="ghost-button small"
+                  onClick={() => void handleInstallWidget()}
+                  disabled={(widget !== null && !widget.supported) || widgetInstalling}
+                >
+                  <RefreshCw size={13} className={widgetInstalling ? "spin" : undefined} />
+                  {widgetInstalling
+                    ? t("widgetInstalling")
+                    : !widget?.installed
+                      ? t("widgetInstall")
+                      : widgetOutdated
+                        ? t("widgetUpdate")
+                        : t("widgetReinstall")}
+                </button>
+              </div>
+            </SettingRow>
+            {widget?.error ? (
+              <div className="inline-alert">
+                <AlertTriangle size={14} />
+                <span>{widget.error}</span>
+              </div>
+            ) : null}
           </div>
         </section>
 

@@ -54,15 +54,17 @@ Codex 的 `app-server` 协议由本机 Codex CLI 提供，不同 Codex 版本可
 
 ### Windows 11 系统小组件（Widgets Board）
 
-> 这是 Windows 11 自带的 `Win+W` 小组件面板里的原生卡片，不是应用的悬浮窗。它需要单独安装一个 MSIX 包，只有 Windows 11 22H2（build 22621）及以上支持。
+> 这是 Windows 11 自带的 `Win+W` 小组件面板里的原生卡片，不是应用的悬浮窗。它通过独立的 MSIX 包提供，只有 Windows 11 22H2（build 22621）及以上支持。
 
-Release 中会附带三个文件：
+从 v0.1.7 开始，主程序会在启动时自动安装或更新同版本的小组件，无需手动下载。设置页的“Windows 11 小组件”一栏会显示当前状态，也可以手动重新安装。
+
+如果自动安装失败（例如系统策略禁止侧载），Release 中仍附带手动安装文件：
 
 - `AIUsageDock.Widget.msix`：小组件 Provider 本体
 - `AIUsageDock.Widget.cer`：自签名证书
 - `install-widget.ps1`：安装脚本
 
-安装步骤：
+手动安装步骤：
 
 1. 先安装并运行主程序，让它至少完成一次额度刷新（主程序会把数据写入 `%LOCALAPPDATA%\com.barryge1214.aiusagedock\widget.json`）。
 2. 把上面三个文件放在同一个目录。
@@ -86,13 +88,13 @@ Release 中会附带三个文件：
 - 小组件读取主程序导出的数据；主程序在后台刷新后，卡片会在 30 秒内更新，也可以点击卡片上的“刷新”。
 - 如果 `Win+W` 的小组件库里暂时看不到它，先确认安装成功（`Get-AppxPackage BarryGe1214.AIUsageDock.Widget`），然后重启一次 `Widgets.exe` 或重启系统。
 - 卸载：**设置 → 应用 → 已安装的应用 → AI Usage Dock Widget → 卸载**。
-- 如果后续 Release 更换了签名证书，重新运行一次 `install-widget.ps1` 即可。
+- 应用内自动安装会校验签名证书指纹；Release 更换证书后需要同时更新 `src-tauri/src/widget_install.rs` 中的 pin。
 
-#### 配置固定的小组件签名证书（可选，推荐）
+#### 配置固定的小组件签名证书（发布必需）
 
-默认情况下 CI 每次发布会生成临时证书，升级小组件后需要重新信任新的 `.cer`。如果希望所有版本使用同一张证书：
+主程序内置了固定的证书指纹，因此 CI 必须使用同一张证书签名 MSIX；未配置时发布会直接失败。首次配置步骤：
 
-1. 在本地 PowerShell 生成一张代码签名证书：
+1. 生成一张代码签名证书：
 
    ```powershell
    $cert = New-SelfSignedCertificate -Type Custom -Subject "CN=AI Usage Dock" `
@@ -112,7 +114,7 @@ Release 中会附带三个文件：
    | `WIDGET_SIGNING_PFX_BASE64` | 上一步复制到剪贴板的 PFX Base64 |
    | `WIDGET_SIGNING_PFX_PASSWORD` | PFX 密码 |
 
-未配置这两个 Secret 时构建不会失败，但每次发布都会使用新证书。
+3. 确认证书 SHA-1 指纹与代码中的 `CERT_THUMBPRINT`（`src-tauri/src/widget_install.rs`）一致；CI 构建时会自动校验，不一致会失败。
 
 ### 添加 Funcloud 账号
 
@@ -218,6 +220,7 @@ ai-usage-dock/
 │  ├─ src/commands.rs        # Tauri 命令
 │  ├─ src/state.rs           # 聚合刷新、缓存、定时任务
 │  ├─ src/widget_feed.rs     # 导出 Windows 小组件数据（widget.json）
+│  ├─ src/widget_install.rs  # 自动下载、校验并安装小组件 MSIX
 │  ├─ src/providers/         # Funcloud / Codex Provider
 │  ├─ src/window.rs          # 三形态窗口定位
 │  ├─ src/tray.rs            # 系统托盘与菜单
@@ -260,6 +263,7 @@ AI Usage Dock is a Windows-first desktop widget for monitoring **OpenAI Codex** 
 - Secrets are stored in Windows Credential Manager / Secret Service / Keychain.
 - Windows installers are built by GitHub Actions (`.github/workflows/release.yml`); the same workflow builds the signed Windows 11 widget MSIX. CI runs the frontend build and Rust tests on every push. Linux and macOS builds are planned.
 - The app checks GitHub Releases for signed updates on startup and can install them in place from **Settings → About → Software update**.
+- The Windows 11 widget MSIX is downloaded and installed (or upgraded) automatically by the app on launch, with the signing certificate pinned in `src-tauri/src/widget_install.rs`.
 
 ## Privacy
 

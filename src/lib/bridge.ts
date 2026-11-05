@@ -13,6 +13,7 @@ import type {
   UpdateProgress,
   UsageSnapshot,
   ViewEvent,
+  WidgetStatus,
 } from "../types";
 import {
   mockAddAccount,
@@ -221,4 +222,37 @@ export function onUpdateProgress(
 ): Promise<UnlistenFn> {
   if (!isTauri) return Promise.resolve(noopUnlisten);
   return listen<UpdateProgress>("update://progress", (event) => handler(event.payload));
+}
+
+function mockWidgetStatus(): WidgetStatus {
+  return {
+    supported: false,
+    installed: false,
+    installedVersion: null,
+    targetVersion: "",
+    phase: "unsupported",
+    downloaded: 0,
+    total: null,
+    error: null,
+  };
+}
+
+export async function getWidgetStatus(): Promise<WidgetStatus> {
+  if (!isTauri) return mockWidgetStatus();
+  return invoke<WidgetStatus>("widget_status");
+}
+
+export async function installWidget(force = false): Promise<WidgetStatus> {
+  if (!isTauri) {
+    await mockDelay();
+    return mockWidgetStatus();
+  }
+  return invoke<WidgetStatus>("install_widget", { force });
+}
+
+export function onWidgetStatus(
+  handler: (status: WidgetStatus) => void,
+): Promise<UnlistenFn> {
+  if (!isTauri) return Promise.resolve(noopUnlisten);
+  return listen<WidgetStatus>("widget://status", (event) => handler(event.payload));
 }

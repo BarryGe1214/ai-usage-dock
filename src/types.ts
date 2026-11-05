@@ -145,3 +145,23 @@ export interface UpdateProgress {
   downloaded: number;
   total?: number | null;
 }
+
+export type WidgetInstallPhase =
+  | "idle"
+  | "checking"
+  | "downloading"
+  | "installing"
+  | "done"
+  | "error"
+  | "unsupported";
+
+export interface WidgetStatus {
+  supported: boolean;
+  installed: boolean;
+  installedVersion?: string | null;
+  targetVersion: string;
+  phase: WidgetInstallPhase;
+  downloaded: number;
+  total?: number | null;
+  error?: string | null;
+}

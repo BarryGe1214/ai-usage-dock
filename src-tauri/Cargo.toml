@@ -1,6 +1,6 @@
 [package]
 name = "ai-usage-dock"
-version = "0.1.6"
+version = "0.1.7"
 description = "Desktop dock that shows OpenAI Codex and Funcloud API quota across multiple accounts."
 authors = ["BarryGe1214"]
 edition = "2024"
@@ -25,8 +25,8 @@ tauri-plugin-single-instance = "2"
 tauri-plugin-updater = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "gzip"] }
-tokio = { version = "1", features = ["process", "time", "sync", "io-util", "macros"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "gzip", "stream"] }
+tokio = { version = "1", features = ["rt", "process", "time", "sync", "io-util", "macros", "fs"] }
 chrono = { version = "0.4", features = ["serde"] }
 keyring = { version = "3", features = ["apple-native", "windows-native", "sync-secret-service"] }
 uuid = { version = "1", features = ["v4"] }
