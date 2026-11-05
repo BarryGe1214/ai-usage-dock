@@ -19,6 +19,9 @@
     <!-- The widget manifest has no localized resources, so no resources.pri is needed. -->
     <AppxGeneratePriEnabled>false</AppxGeneratePriEnabled>
     <AppxGetPackagePropertiesEnabled>false</AppxGetPackagePropertiesEnabled>
+    <!-- Avoid the AppxPackage MSBuild tasks (only shipped with Visual Studio) when
+         gathering PRI payload; this project is packaged manually with makeappx. -->
+    <IncludeCopyLocalFilesOutputGroup>false</IncludeCopyLocalFilesOutputGroup>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <ApplicationManifest>app.manifest</ApplicationManifest>

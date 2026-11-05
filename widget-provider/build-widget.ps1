@@ -60,16 +60,57 @@ function Find-SdkTool {
     throw "$Name.exe was not found. Install the Windows 11 SDK (10.0.22621 or later)."
 }
 
-Write-Host "Publishing provider executable..."
-& dotnet publish $project -c $Configuration -r $Runtime --self-contained true `
-    -p:Platform=x64 `
-    -p:WindowsAppSDKSelfContained=true `
-    -p:WindowsPackageType=None `
-    -p:DebugType=None `
-    -p:DebugSymbols=false `
-    -o $publishDir
+function Find-VisualStudio {
+    $vswhere = Join-Path ${env:ProgramFiles(x86)} "Microsoft Visual Studio\Installer\vswhere.exe"
+    if (-not (Test-Path $vswhere)) {
+        throw "vswhere.exe was not found. Install Visual Studio 2022 with the .NET desktop and Windows application development workloads."
+    }
 
-if ($LASTEXITCODE -ne 0) { throw "dotnet publish failed with exit code $LASTEXITCODE" }
+    $installPath = & $vswhere -latest -products * -requires Microsoft.Component.MSBuild -property installationPath | Select-Object -First 1
+    if (-not $installPath) {
+        throw "Visual Studio with MSBuild was not found."
+    }
+
+    $msbuild = Join-Path $installPath "MSBuild\Current\Bin\MSBuild.exe"
+    if (-not (Test-Path $msbuild)) {
+        throw "MSBuild.exe was not found under $installPath."
+    }
+
+    $appxTools = Get-ChildItem (Join-Path $installPath "MSBuild\Microsoft\VisualStudio") -Directory -ErrorAction SilentlyContinue |
+        ForEach-Object { Join-Path $_.FullName "AppxPackage" } |
+        Where-Object { Test-Path (Join-Path $_ "Microsoft.Build.AppxPackage.dll") } |
+        Select-Object -First 1
+
+    if (-not $appxTools) {
+        throw "The MSIX/Appx MSBuild tasks were not found under $installPath. Install the 'Windows application development' workload."
+    }
+
+    return @{ MSBuild = $msbuild; AppxTools = $appxTools }
+}
+
+Write-Host "Publishing provider executable..."
+$visualStudio = Find-VisualStudio
+Push-Location $root
+try {
+    & $visualStudio.MSBuild $project /t:Restore,Publish `
+        /p:Configuration=$Configuration `
+        /p:Platform=x64 `
+        /p:RuntimeIdentifier=$Runtime `
+        /p:SelfContained=true `
+        /p:WindowsAppSDKSelfContained=true `
+        /p:WindowsPackageType=None `
+        /p:AppxMSBuildToolsPath="$($visualStudio.AppxTools)\" `
+        /p:PublishDir="$publishDir\" `
+        /p:DebugType=None `
+        /p:DebugSymbols=false `
+        /nologo `
+        /v:minimal
+}
+finally {
+    Pop-Location
+}
+
+if ($LASTEXITCODE -ne 0) { throw "MSBuild publish failed with exit code $LASTEXITCODE" }
 
 $exePath = Join-Path $publishDir "AiUsageDock.WidgetProvider.exe"
 if (-not (Test-Path $exePath)) { throw "Expected provider executable was not produced: $exePath" }
