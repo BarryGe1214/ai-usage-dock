@@ -35,7 +35,6 @@
     <Application
       Id="App"
       Executable="AiUsageDock.WidgetProvider.exe"
-      EntryPoint="Windows.FullTrustApplication"
       uap10:TrustLevel="mediumIL"
       uap10:RuntimeBehavior="win32App">
       <uap:VisualElements
