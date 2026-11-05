@@ -5,6 +5,9 @@
     <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
     <TargetPlatformMinVersion>10.0.19041.0</TargetPlatformMinVersion>
     <SupportedOSPlatformVersion>10.0.19041.0</SupportedOSPlatformVersion>
+    <!-- WindowsAppSDK 1.6 requires a recent Windows SDK projection. Pin it so
+         the build does not depend on the runner's implicit targeting pack. -->
+    <WindowsSdkPackageVersion>10.0.19041.56</WindowsSdkPackageVersion>
     <RootNamespace>AiUsageDock.Widgets</RootNamespace>
     <AssemblyName>AiUsageDock.WidgetProvider</AssemblyName>
     <Platforms>x64</Platforms>
