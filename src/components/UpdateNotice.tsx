@@ -33,7 +33,8 @@ export function UpdateNotice({
     variant === "banner" &&
     phase !== "available" &&
     phase !== "downloading" &&
-    phase !== "ready"
+    phase !== "ready" &&
+    !(phase === "error" && info)
   ) {
     return null;
   }
