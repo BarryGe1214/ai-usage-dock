@@ -9,6 +9,8 @@ import type {
   LayoutEvent,
   PreferencesUpdate,
   UiMode,
+  UpdateInfo,
+  UpdateProgress,
   UsageSnapshot,
   ViewEvent,
 } from "../types";
@@ -197,4 +199,26 @@ export function onViewChanged(
 ): Promise<UnlistenFn> {
   if (!isTauri) return Promise.resolve(noopUnlisten);
   return listen<ViewEvent>("ui://view", (event) => handler(event.payload.view));
+}
+
+export async function checkUpdate(): Promise<UpdateInfo | null> {
+  if (!isTauri) return null;
+  return invoke<UpdateInfo | null>("check_update");
+}
+
+export async function installUpdate(): Promise<void> {
+  if (!isTauri) return;
+  await invoke("install_update");
+}
+
+export async function restartApp(): Promise<void> {
+  if (!isTauri) return;
+  await invoke("restart_app");
+}
+
+export function onUpdateProgress(
+  handler: (progress: UpdateProgress) => void,
+): Promise<UnlistenFn> {
+  if (!isTauri) return Promise.resolve(noopUnlisten);
+  return listen<UpdateProgress>("update://progress", (event) => handler(event.payload));
 }

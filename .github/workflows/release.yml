@@ -1,16 +1,57 @@
 name: Release
 
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
+    inputs:
+      draft:
+        description: Publish the release as a draft
+        type: boolean
+        default: true
 
 permissions:
   contents: write
 
+concurrency:
+  group: release
+  cancel-in-progress: false
+
 jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      should_release: ${{ steps.version.outputs.should_release }}
+      tag: ${{ steps.version.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Resolve version and create tag
+        id: version
+        shell: bash
+        run: |
+          VERSION=$(node -p "require('./src-tauri/tauri.conf.json').version")
+          TAG="v$VERSION"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
+            echo "should_release=false" >> "$GITHUB_OUTPUT"
+            echo "Tag $TAG already exists, skipping the automatic release."
+          else
+            echo "should_release=true" >> "$GITHUB_OUTPUT"
+            git tag "$TAG"
+            git push origin "$TAG"
+            echo "Created tag $TAG."
+          fi
+
   build-windows:
+    needs: prepare
+    if: needs.prepare.outputs.should_release == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare.outputs.tag }}
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -20,17 +61,37 @@ jobs:
         with:
           workspaces: src-tauri
       - run: npm ci
-      - name: Build and upload Windows installers
+      - name: Detect updater signing key
+        id: signing
+        shell: bash
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: |
+          if [ -n "$TAURI_SIGNING_PRIVATE_KEY" ]; then
+            echo '{"bundle":{"createUpdaterArtifacts":true}}' > updater.config.json
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::TAURI_SIGNING_PRIVATE_KEY is not configured; building installers without updater artifacts."
+          fi
+      - name: Build and publish
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
-          tagName: v__VERSION__
-          releaseName: "AI Usage Dock v__VERSION__"
-          releaseBody: "See the assets below to download and install AI Usage Dock."
-          releaseDraft: true
+          tagName: ${{ needs.prepare.outputs.tag }}
+          releaseName: "AI Usage Dock __VERSION__"
+          releaseBody: |
+            AI Usage Dock __VERSION__
+
+            - Windows installers: NSIS (recommended) and MSI.
+            - Existing installations can update in place from Settings → Software update.
+          releaseDraft: ${{ github.event_name == 'workflow_dispatch' && inputs.draft }}
           prerelease: false
-          args: --bundles nsis,msi
+          includeUpdaterJson: ${{ steps.signing.outputs.enabled == 'true' }}
+          args: --bundles nsis,msi ${{ steps.signing.outputs.enabled == 'true' && '--config updater.config.json' || '' }}
 
   # Linux and macOS builds are intentionally left commented until the
   # platform-specific tray/window behavior has been verified.

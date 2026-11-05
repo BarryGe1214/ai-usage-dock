@@ -15,6 +15,8 @@
 - **托盘常驻**：托盘图标显示聚合额度提示，右键菜单可刷新、切换形态、打开设置或退出。
 - **退出方式**：标题栏电源按钮、设置页“退出应用”、托盘右键“退出”均可关闭程序；隐藏按钮只是收起窗口。
 - **内置设置页**：点击齿轮后主窗口直接切换到设置视图，关闭后恢复原来的形态和位置。
+- **应用内更新**：启动后自动检查新版本，主界面顶部提示；设置页可手动检查、下载、一键重启完成更新。
+- **自动发布**：推送到 `main` 且版本号变化时，自动打 tag、构建 Windows 安装包并发布 Release。
 - **双语与主题**：简体中文 / English，深色 / 浅色 / 跟随系统。
 - **安全存储**：Funcloud API Key 保存在 Windows 凭据管理器（Linux 使用 Secret Service，macOS 使用 Keychain），不写入配置文件。
 - **自动刷新**：默认每 2 分钟刷新一次，可在设置中调整；支持开机自启。
@@ -40,10 +42,12 @@ Codex 的 `app-server` 协议由本机 Codex CLI 提供，不同 Codex 版本可
 
 ### 安装
 
-从 [Releases](https://github.com/BarryGe1214/ai-usage-dock/releases) 下载 v0.1.0：
+从 [Releases](https://github.com/BarryGe1214/ai-usage-dock/releases) 下载最新版本：
 
-- `AI.Usage.Dock_0.1.0_x64-setup.exe`：NSIS 当前用户安装
-- `AI.Usage.Dock_0.1.0_x64_en-US.msi`：MSI 安装包
+- `AI.Usage.Dock_<版本>_x64-setup.exe`：NSIS 当前用户安装（推荐）
+- `AI.Usage.Dock_<版本>_x64_en-US.msi`：MSI 安装包
+
+安装后可以在应用内检查更新（设置 → 关于 → 软件更新），无需手动下载新版本。
 
 当前构建未做代码签名，Windows 可能显示“未知发布者”。确认来源可信后选择“更多信息 → 仍要运行”。
 
@@ -96,11 +100,36 @@ npm run tauri build
 仓库已启用两套工作流：
 
 - `.github/workflows/ci.yml`：push / PR 时构建前端（`tsc + vite`）并运行 Rust 单元测试。
-- `.github/workflows/release.yml`：手动触发时在 Windows 上构建 NSIS / MSI 并上传到 draft Release。
+- `.github/workflows/release.yml`：自动发布。
 
-发布新版本：先修改 `src-tauri/tauri.conf.json` 与 `src-tauri/Cargo.toml` 中的版本号并提交，再到 Actions 页面手动运行 `Release`，构建完成后在 Releases 页面 Publish。
+发布新版本只需要：
 
-> Release 工作流只保留手动触发。若同时监听 `v*` tag，发布 draft 时 GitHub 会创建 tag 并再次触发构建，对同一个 Release 重复上传。
+1. 修改 `src-tauri/tauri.conf.json`、`src-tauri/Cargo.toml`、`package.json` 中的版本号。
+2. 提交并推送到 `main`。
+3. 工作流读取 `tauri.conf.json` 的版本号，发现对应的 `vX.Y.Z` tag 不存在时自动创建 tag，在 Windows 上构建 NSIS / MSI 并发布 Release；版本号未变化时自动跳过。
+
+也可以在 Actions 页面手动运行 `Release` 重新构建当前版本（默认生成 draft）。
+
+### 应用内更新
+
+应用启动后会在后台静默检查最新 Release，发现新版本时主界面顶部会出现更新提示。也可以随时在 **设置 → 关于 → 软件更新** 中手动检查：
+
+- 点击“立即更新”下载并安装，界面会显示下载进度。
+- 下载完成后点击“重启应用”切换到新版本。
+- 更新包使用 Tauri 的 minisign 签名校验，防止被篡改。
+
+#### 配置更新签名（仅需一次）
+
+自动更新要求 Release 中包含签名后的安装包和 `latest.json`。在 GitHub 仓库的 **Settings → Secrets and variables → Actions** 中添加：
+
+| Secret | 内容 |
+| --- | --- |
+| `TAURI_SIGNING_PRIVATE_KEY` | 私钥文件内容（`npx @tauri-apps/cli@2 signer generate -w ai-usage-dock.key` 生成，无密码时直接粘贴 `ai-usage-dock.key` 的全部内容） |
+| `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | 生成密钥时设置的密码；没有密码则留空或不创建 |
+
+公钥已经写入 `src-tauri/tauri.conf.json` 的 `plugins.updater.pubkey`。私钥只放在 GitHub Secrets 中，不要提交到仓库。
+
+工作流检测到 `TAURI_SIGNING_PRIVATE_KEY` 后会自动启用 `bundle.createUpdaterArtifacts` 并上传 `latest.json`；未配置时仍会正常构建和发布普通安装包，只是该版本不支持应用内更新。
 
 ### Linux 依赖（预留）
 
@@ -160,6 +189,7 @@ AI Usage Dock is a Windows-first desktop widget for monitoring **OpenAI Codex** 
 - Funcloud data comes from the same endpoints used by `https://funcloud.ai/key-usage`.
 - Secrets are stored in Windows Credential Manager / Secret Service / Keychain.
 - Windows installers are built by GitHub Actions (`.github/workflows/release.yml`); CI runs the frontend build and Rust tests on every push. Linux and macOS builds are planned.
+- The app checks GitHub Releases for signed updates on startup and can install them in place from **Settings → About → Software update**.
 
 ## Privacy
 

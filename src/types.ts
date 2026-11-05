@@ -118,3 +118,30 @@ export interface LayoutEvent {
 export interface ViewEvent {
   view: "dock" | "settings";
 }
+
+export interface UpdateInfo {
+  version: string;
+  currentVersion: string;
+  notes?: string | null;
+}
+
+export type UpdatePhase =
+  | "idle"
+  | "checking"
+  | "available"
+  | "downloading"
+  | "ready"
+  | "uptodate"
+  | "error";
+
+export interface UpdateState {
+  info: UpdateInfo | null;
+  phase: UpdatePhase;
+  progress: number;
+  error?: string | null;
+}
+
+export interface UpdateProgress {
+  downloaded: number;
+  total?: number | null;
+}

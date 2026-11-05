@@ -20,6 +20,7 @@ pub fn run() {
             Some(vec!["--autostart"]),
         ))
         .plugin(tauri_plugin_positioner::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .setup(|app| {
             let config = config::load(app.handle());
             let snapshots = state::load_cache(app.handle());
@@ -100,6 +101,9 @@ pub fn run() {
             commands::close_settings,
             commands::quit_app,
             commands::check_codex,
+            commands::check_update,
+            commands::install_update,
+            commands::restart_app,
             commands::open_url,
         ])
         .run(tauri::generate_context!())

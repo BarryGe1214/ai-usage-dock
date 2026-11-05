@@ -389,6 +389,108 @@ body[data-view="settings"] .boot-screen {
   flex: 1;
 }
 
+/* Software update ------------------------------------------------------ */
+
+.update-notice {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 10px;
+  border: 1px solid rgba(91, 140, 255, 0.28);
+  border-radius: 11px;
+  background: rgba(91, 140, 255, 0.1);
+  animation: update-in 0.18s ease;
+}
+
+.update-notice.is-banner {
+  flex-shrink: 0;
+  margin: 0 11px 8px;
+}
+
+.update-notice.is-row {
+  margin: 0;
+  padding: 9px 0;
+  border: 0;
+  border-top: 1px solid var(--border);
+  border-radius: 0;
+  background: transparent;
+}
+
+.update-notice-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: var(--accent-strong);
+}
+
+.update-notice-text {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+  color: var(--muted);
+  font-size: 10.5px;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.update-notice-text strong {
+  color: var(--text);
+  font-size: 10.5px;
+  font-weight: 600;
+}
+
+.update-notice.is-banner .update-notice-text span {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.update-notice button,
+.update-notice .update-progress {
+  flex-shrink: 0;
+}
+
+.update-progress {
+  color: var(--accent-strong);
+  font-size: 10.5px;
+  font-weight: 600;
+}
+
+.update-notice.tone-ready {
+  border-color: rgba(61, 220, 151, 0.3);
+  background: rgba(61, 220, 151, 0.09);
+}
+
+.update-notice.tone-ready .update-notice-icon {
+  color: var(--good);
+}
+
+.update-notice.tone-error {
+  border-color: rgba(255, 107, 122, 0.28);
+  background: rgba(255, 107, 122, 0.08);
+}
+
+.update-notice.tone-error .update-notice-icon {
+  color: var(--bad);
+}
+
+.update-notice.is-row.tone-ready,
+.update-notice.is-row.tone-error {
+  border-top-color: var(--border);
+  background: transparent;
+}
+
+@keyframes update-in {
+  from {
+    opacity: 0;
+    transform: translateY(-3px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 .text-button {
   display: inline-flex;
   align-items: center;

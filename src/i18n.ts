@@ -159,6 +159,17 @@ const zh = {
   codexCreditsLabel: "Codex Credits",
   quotaWindow: "额度窗口",
   windowCount: "{value} 个额度窗口",
+  updates: "软件更新",
+  checkUpdate: "检查更新",
+  checkingUpdate: "正在检查...",
+  updateIdle: "尚未检查",
+  updateAvailable: "发现新版本 v{version}",
+  updateNow: "立即更新",
+  updateDownloading: "正在下载 {value}%",
+  updateReady: "更新已就绪，重启后生效",
+  updateRestart: "重启应用",
+  upToDate: "已是最新版本",
+  updateError: "更新失败",
 };
 
 export type TranslationKey = keyof typeof zh;
@@ -322,6 +333,17 @@ const en: Record<TranslationKey, string> = {
   codexCreditsLabel: "Codex Credits",
   quotaWindow: "Quota window",
   windowCount: "{value} quota windows",
+  updates: "Software update",
+  checkUpdate: "Check for updates",
+  checkingUpdate: "Checking...",
+  updateIdle: "Not checked yet",
+  updateAvailable: "Version v{version} is available",
+  updateNow: "Update now",
+  updateDownloading: "Downloading {value}%",
+  updateReady: "Update ready, restart to apply",
+  updateRestart: "Restart app",
+  upToDate: "You're up to date",
+  updateError: "Update failed",
 };
 
 export function makeTranslator(language: Language) {

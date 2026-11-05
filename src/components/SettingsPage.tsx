@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 
 import type { Translator } from "../i18n";
-import type { AccountView, AppConfig, CodexCheck, UsageSnapshot } from "../types";
+import type { AccountView, AppConfig, CodexCheck, UpdateState, UsageSnapshot } from "../types";
 import {
   addFuncloudAccount,
   checkCodex,
@@ -36,6 +36,7 @@ import {
 } from "../lib/bridge";
 import { formatPlan } from "../lib/format";
 import { Logo } from "./Logo";
+import { UpdateNotice } from "./UpdateNotice";
 
 interface SettingsPageProps {
   config: AppConfig;
@@ -45,6 +46,10 @@ interface SettingsPageProps {
   version: string;
   codexPath?: string | null;
   onConfigChange: (config: AppConfig) => void;
+  update: UpdateState;
+  onCheckUpdate: () => void;
+  onInstallUpdate: () => void;
+  onRestartUpdate: () => void;
 }
 
 interface ToastState {
@@ -70,6 +75,10 @@ export function SettingsPage({
   version,
   codexPath,
   onConfigChange,
+  update,
+  onCheckUpdate,
+  onInstallUpdate,
+  onRestartUpdate,
 }: SettingsPageProps) {
   const [draft, setDraft] = useState<AppConfig>(config);
   const [codexState, setCodexState] = useState<CodexCheck | null>(null);
@@ -570,6 +579,14 @@ export function SettingsPage({
               <span>{t("license")}</span>
               <strong>MIT</strong>
             </div>
+            <UpdateNotice
+              variant="row"
+              update={update}
+              t={t}
+              onCheck={onCheckUpdate}
+              onInstall={onInstallUpdate}
+              onRestart={onRestartUpdate}
+            />
             <p className="privacy-note">
               <ShieldCheck size={14} />
               {t("privacyNote")}

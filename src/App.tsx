@@ -8,22 +8,27 @@ import type {
   Bootstrap,
   Language,
   UiMode,
+  UpdateState,
   UsageSnapshot,
 } from "./types";
 import { makeTranslator } from "./i18n";
 import {
+  checkUpdate,
   getBootstrap,
   hideMain,
+  installUpdate,
   isTauri,
   onAccountsUpdated,
   onConfigUpdated,
   onLayoutUpdated,
+  onUpdateProgress,
   onUsageUpdated,
   onViewChanged,
   openSettings,
   quitApp,
   refreshAccount,
   refreshAll,
+  restartApp,
   setAccountEnabled,
   setFloatingExpanded,
   setUiMode,
@@ -47,6 +52,11 @@ export default function App() {
   const [accounts, setAccounts] = useState<AccountView[]>([]);
   const [snapshots, setSnapshots] = useState<UsageSnapshot[]>([]);
   const [bootError, setBootError] = useState<string | null>(null);
+  const [update, setUpdate] = useState<UpdateState>({
+    info: null,
+    phase: "idle",
+    progress: 0,
+  });
 
   const loadBootstrap = useCallback(async () => {
     setBootError(null);
@@ -65,6 +75,58 @@ export default function App() {
     void loadBootstrap();
   }, [loadBootstrap]);
 
+  const runUpdateCheck = useCallback(async (manual: boolean) => {
+    if (!isTauri) {
+      if (manual) setUpdate({ info: null, phase: "uptodate", progress: 0 });
+      return;
+    }
+    setUpdate((previous) => ({ ...previous, phase: "checking", error: null }));
+    try {
+      const info = await checkUpdate();
+      if (info) {
+        setUpdate({ info, phase: "available", progress: 0 });
+      } else {
+        setUpdate({ info: null, phase: manual ? "uptodate" : "idle", progress: 0 });
+      }
+    } catch (error) {
+      setUpdate({
+        info: null,
+        phase: manual ? "error" : "idle",
+        progress: 0,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }, []);
+
+  useEffect(() => {
+    void runUpdateCheck(false);
+  }, [runUpdateCheck]);
+
+  const installAvailableUpdate = useCallback(async () => {
+    if (!update.info || !isTauri) return;
+    setUpdate((previous) => ({
+      ...previous,
+      phase: "downloading",
+      progress: 0,
+      error: null,
+    }));
+    try {
+      await installUpdate();
+      setUpdate((previous) => ({ ...previous, phase: "ready", progress: 100 }));
+    } catch (error) {
+      setUpdate({
+        info: update.info,
+        phase: "error",
+        progress: 0,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }, [update.info]);
+
+  const restartForUpdate = useCallback(() => {
+    void restartApp();
+  }, []);
+
   useEffect(() => {
     const unlisteners: UnlistenFn[] = [];
     let cancelled = false;
@@ -74,6 +136,19 @@ export default function App() {
       onConfigUpdated(setConfig),
       onAccountsUpdated(setAccounts),
       onViewChanged(setView),
+      onUpdateProgress((progress) =>
+        setUpdate((previous) => {
+          if (previous.phase !== "available" && previous.phase !== "downloading") {
+            return previous;
+          }
+          const total = progress.total ?? 0;
+          const percent =
+            total > 0
+              ? Math.min(100, Math.round((progress.downloaded / total) * 100))
+              : previous.progress;
+          return { ...previous, phase: "downloading", progress: percent };
+        }),
+      ),
       onLayoutUpdated((layout) =>
         setConfig((previous) =>
           previous
@@ -184,6 +259,10 @@ export default function App() {
         version={bootstrap.version}
         codexPath={bootstrap.codexPath}
         onConfigChange={setConfig}
+        update={update}
+        onCheckUpdate={() => void runUpdateCheck(true)}
+        onInstallUpdate={() => void installAvailableUpdate()}
+        onRestartUpdate={restartForUpdate}
       />
     );
   }
@@ -204,6 +283,10 @@ export default function App() {
       onQuit={() => void quitApp()}
       onToggleExpand={() => void handleToggleExpand()}
       onSetMode={(mode) => void handleSetMode(mode)}
+      update={update}
+      onCheckUpdate={() => void runUpdateCheck(true)}
+      onInstallUpdate={() => void installAvailableUpdate()}
+      onRestartUpdate={restartForUpdate}
     />
   );
 }

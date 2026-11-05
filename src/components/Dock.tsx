@@ -20,6 +20,7 @@ import type {
   AppConfig,
   Language,
   UiMode,
+  UpdateState,
   UsageSnapshot,
 } from "../types";
 import {
@@ -30,6 +31,7 @@ import {
 } from "../lib/format";
 import { AccountCard } from "./AccountCard";
 import { Logo } from "./Logo";
+import { UpdateNotice } from "./UpdateNotice";
 
 interface DockProps {
   config: AppConfig;
@@ -46,6 +48,10 @@ interface DockProps {
   onQuit: () => void;
   onToggleExpand: () => void;
   onSetMode: (mode: UiMode) => void;
+  update: UpdateState;
+  onCheckUpdate: () => void;
+  onInstallUpdate: () => void;
+  onRestartUpdate: () => void;
 }
 
 export function Dock({
@@ -63,6 +69,10 @@ export function Dock({
   onQuit,
   onToggleExpand,
   onSetMode,
+  update,
+  onCheckUpdate,
+  onInstallUpdate,
+  onRestartUpdate,
 }: DockProps) {
   const [refreshing, setRefreshing] = useState(false);
   const [refreshError, setRefreshError] = useState<string | null>(null);
@@ -186,6 +196,15 @@ export function Dock({
           </button>
         </div>
       </header>
+
+      <UpdateNotice
+        variant="banner"
+        update={update}
+        t={t}
+        onCheck={onCheckUpdate}
+        onInstall={onInstallUpdate}
+        onRestart={onRestartUpdate}
+      />
 
       <div className="dock-summary">
         {codexRemaining !== null ? (
