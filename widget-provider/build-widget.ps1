@@ -121,7 +121,7 @@ Copy-Item -Path (Join-Path $root "Assets") -Destination $stageDir -Recurse -Forc
 Copy-Item -Path (Join-Path $root "ProviderAssets") -Destination $stageDir -Recurse -Force
 
 $manifest = Get-Content (Join-Path $root "Package.appxmanifest") -Raw
-$manifest = [regex]::Replace($manifest, 'Version="\d+\.\d+\.\d+\.\d+"', "Version=`"$Version`"")
+$manifest = [regex]::Replace($manifest, '(?<![\w])Version="\d+\.\d+\.\d+\.\d+"', "Version=`"$Version`"")
 Set-Content -Path (Join-Path $stageDir "AppxManifest.xml") -Value $manifest -Encoding UTF8
 
 $makeappx = Find-SdkTool "makeappx"
