@@ -19,7 +19,9 @@ import {
   onConfigUpdated,
   onLayoutUpdated,
   onUsageUpdated,
+  onViewChanged,
   openSettings,
+  quitApp,
   refreshAccount,
   refreshAll,
   setAccountEnabled,
@@ -30,11 +32,16 @@ import { Dock } from "./components/Dock";
 import { Logo } from "./components/Logo";
 import { SettingsPage } from "./components/SettingsPage";
 
-const isSettingsView =
+type AppView = "dock" | "settings";
+
+const initialView: AppView =
   new URLSearchParams(window.location.search).get("view") === "settings" ||
-  (isTauri && getCurrentWindow().label === "settings");
+  (isTauri && getCurrentWindow().label === "settings")
+    ? "settings"
+    : "dock";
 
 export default function App() {
+  const [view, setView] = useState<AppView>(initialView);
   const [bootstrap, setBootstrap] = useState<Bootstrap | null>(null);
   const [config, setConfig] = useState<AppConfig | null>(null);
   const [accounts, setAccounts] = useState<AccountView[]>([]);
@@ -66,6 +73,7 @@ export default function App() {
       onUsageUpdated(setSnapshots),
       onConfigUpdated(setConfig),
       onAccountsUpdated(setAccounts),
+      onViewChanged(setView),
       onLayoutUpdated((layout) =>
         setConfig((previous) =>
           previous
@@ -111,11 +119,10 @@ export default function App() {
 
   useEffect(() => {
     document.documentElement.lang = language === "zh" ? "zh-CN" : "en";
-    document.title = isSettingsView
-      ? `${t("settingsTitle")} · ${t("appName")}`
-      : t("appName");
-    document.body.dataset.view = isSettingsView ? "settings" : "dock";
-  }, [language, t]);
+    document.title =
+      view === "settings" ? `${t("settingsTitle")} · ${t("appName")}` : t("appName");
+    document.body.dataset.view = view;
+  }, [language, t, view]);
 
   async function handleRefresh() {
     const next = await refreshAll();
@@ -167,7 +174,7 @@ export default function App() {
     );
   }
 
-  if (isSettingsView) {
+  if (view === "settings") {
     return (
       <SettingsPage
         config={config}
@@ -194,6 +201,7 @@ export default function App() {
       onToggleAccount={handleToggleAccount}
       onOpenSettings={() => void openSettings()}
       onHide={() => void hideMain()}
+      onQuit={() => void quitApp()}
       onToggleExpand={() => void handleToggleExpand()}
       onSetMode={(mode) => void handleSetMode(mode)}
     />

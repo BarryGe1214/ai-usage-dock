@@ -10,6 +10,7 @@ import type {
   PreferencesUpdate,
   UiMode,
   UsageSnapshot,
+  ViewEvent,
 } from "../types";
 import {
   mockAddAccount,
@@ -189,4 +190,11 @@ export function onLayoutUpdated(
 ): Promise<UnlistenFn> {
   if (!isTauri) return Promise.resolve(noopUnlisten);
   return listen<LayoutEvent>("ui://layout", (event) => handler(event.payload));
+}
+
+export function onViewChanged(
+  handler: (view: ViewEvent["view"]) => void,
+): Promise<UnlistenFn> {
+  if (!isTauri) return Promise.resolve(noopUnlisten);
+  return listen<ViewEvent>("ui://view", (event) => handler(event.payload.view));
 }

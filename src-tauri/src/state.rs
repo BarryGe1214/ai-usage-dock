@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
+use std::sync::atomic::AtomicBool;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
@@ -23,6 +24,7 @@ pub struct AppState {
     pub refresh_lock: AsyncMutex<()>,
     pub refresh_notify: Arc<Notify>,
     pub last_position_save: Mutex<Option<Instant>>,
+    pub settings_open: AtomicBool,
 }
 
 impl AppState {
@@ -44,6 +46,7 @@ impl AppState {
             refresh_lock: AsyncMutex::new(()),
             refresh_notify: Arc::new(Notify::new()),
             last_position_save: Mutex::new(None),
+            settings_open: AtomicBool::new(false),
         }
     }
 

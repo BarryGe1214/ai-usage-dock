@@ -214,12 +214,12 @@ export function SettingsPage({
 
   return (
     <div className="settings-window">
-      <header className="settings-header">
-        <div className="settings-heading">
+      <header className="settings-header" data-tauri-drag-region>
+        <div className="settings-heading" data-tauri-drag-region>
           <Logo size={38} />
-          <div>
-            <h1>{t("settingsTitle")}</h1>
-            <p>{t("settingsSubtitle")}</p>
+          <div data-tauri-drag-region>
+            <h1 data-tauri-drag-region>{t("settingsTitle")}</h1>
+            <p data-tauri-drag-region>{t("settingsSubtitle")}</p>
           </div>
         </div>
         <button

@@ -7,6 +7,7 @@ import {
   Cloud,
   PanelRight,
   PanelTop,
+  Power,
   RefreshCw,
   Settings,
   Sparkles,
@@ -42,6 +43,7 @@ interface DockProps {
   onToggleAccount: (id: string, enabled: boolean) => Promise<void>;
   onOpenSettings: () => void;
   onHide: () => void;
+  onQuit: () => void;
   onToggleExpand: () => void;
   onSetMode: (mode: UiMode) => void;
 }
@@ -58,6 +60,7 @@ export function Dock({
   onToggleAccount,
   onOpenSettings,
   onHide,
+  onQuit,
   onToggleExpand,
   onSetMode,
 }: DockProps) {
@@ -71,7 +74,8 @@ export function Dock({
   }, []);
 
   const detailed =
-    config.uiMode !== "floating" || config.floatingExpanded;
+    config.uiMode === "sidebar" ||
+    (config.uiMode === "floating" && config.floatingExpanded);
   const compact = !detailed;
 
   const orderedSnapshots = snapshots;
@@ -171,6 +175,14 @@ export function Dock({
             aria-label={t("hide")}
           >
             <X size={15} />
+          </button>
+          <button
+            className="icon-button danger"
+            onClick={onQuit}
+            title={t("quit")}
+            aria-label={t("quit")}
+          >
+            <Power size={15} />
           </button>
         </div>
       </header>

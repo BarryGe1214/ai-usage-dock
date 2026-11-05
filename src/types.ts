@@ -114,3 +114,7 @@ export interface LayoutEvent {
   floatingExpanded: boolean;
   sidebarEdge: SidebarEdge;
 }
+
+export interface ViewEvent {
+  view: "dock" | "settings";
+}

@@ -64,12 +64,16 @@ pub fn run() {
             WindowEvent::CloseRequested { api, .. } => {
                 if window.label() == "main" {
                     api.prevent_close();
-                    let _ = window.hide();
-                }
-            }
-            WindowEvent::Focused(false) => {
-                if window.label() == "main" {
-                    window::hide_on_blur(&window.app_handle());
+                    let settings_open = window
+                        .app_handle()
+                        .state::<state::AppState>()
+                        .settings_open
+                        .load(std::sync::atomic::Ordering::SeqCst);
+                    if settings_open {
+                        let _ = window::close_settings(window.app_handle());
+                    } else {
+                        let _ = window.hide();
+                    }
                 }
             }
             WindowEvent::Moved(_) => {

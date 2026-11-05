@@ -315,7 +315,16 @@ pub fn close_settings(app: AppHandle) -> Result<(), String> {
 
 #[tauri::command]
 pub fn quit_app(app: AppHandle) {
+    exit_app(&app);
+}
+
+pub fn exit_app(app: &AppHandle) {
     app.exit(0);
+    // app.exit 依赖事件循环收尾；若被阻塞，兜底强制结束进程。
+    let _ = std::thread::Builder::new().spawn(|| {
+        std::thread::sleep(std::time::Duration::from_millis(1200));
+        std::process::exit(0);
+    });
 }
 
 #[tauri::command]

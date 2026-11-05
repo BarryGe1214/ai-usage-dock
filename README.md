@@ -11,8 +11,10 @@
 - **三种显示形态**：
   - 悬浮窗：无边框、置顶、可拖动，紧凑 / 展开两种高度。
   - 贴边侧栏：吸附屏幕左侧或右侧，占满可用高度。
-  - 托盘面板：点击 Windows 系统托盘图标弹出，失焦自动隐藏。
+  - 任务栏组件：340px 宽的小组件固定在任务栏上方、屏幕右下角，常驻显示，不因失焦隐藏。
 - **托盘常驻**：托盘图标显示聚合额度提示，右键菜单可刷新、切换形态、打开设置或退出。
+- **退出方式**：标题栏电源按钮、设置页“退出应用”、托盘右键“退出”均可关闭程序；隐藏按钮只是收起窗口。
+- **内置设置页**：点击齿轮后主窗口直接切换到设置视图，关闭后恢复原来的形态和位置。
 - **双语与主题**：简体中文 / English，深色 / 浅色 / 跟随系统。
 - **安全存储**：Funcloud API Key 保存在 Windows 凭据管理器（Linux 使用 Secret Service，macOS 使用 Keychain），不写入配置文件。
 - **自动刷新**：默认每 2 分钟刷新一次，可在设置中调整；支持开机自启。
@@ -148,11 +150,11 @@ Provider 只需要返回统一的 `UsageSnapshot`：
 - [ ] OpenAI Platform 组织用量 / 费用接口（Admin API Key）
 - [ ] Linux AppImage / deb 发布
 - [ ] macOS 签名与公证
-- [ ] Win11 任务栏嵌入式形态验证（当前使用系统托盘面板，避免注入 explorer）
+- [ ] Win11 任务栏嵌入式形态验证（当前为任务栏上方的小组件，避免注入 explorer）
 
 ## English
 
-AI Usage Dock is a Windows-first desktop widget for monitoring **OpenAI Codex** subscription limits and **Funcloud** API-key usage. It offers a floating widget, a docked sidebar, and a system-tray panel, with a bilingual UI, multiple Funcloud accounts, OS credential storage, and a cross-platform Tauri architecture.
+AI Usage Dock is a Windows-first desktop widget for monitoring **OpenAI Codex** subscription limits and **Funcloud** API-key usage. It offers a floating widget, a docked sidebar, and a compact taskbar widget, with a bilingual UI, multiple Funcloud accounts, OS credential storage, and a cross-platform Tauri architecture.
 
 - Codex data comes from the locally signed-in `codex app-server` (`account/rateLimits/read`), not from scraped ChatGPT cookies.
 - Funcloud data comes from the same endpoints used by `https://funcloud.ai/key-usage`.

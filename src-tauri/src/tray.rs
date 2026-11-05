@@ -33,7 +33,7 @@ pub fn setup(app: &AppHandle) -> Result<(), String> {
                 "settings" => {
                     let _ = window::open_settings(app);
                 }
-                "quit" => app.exit(0),
+                "quit" => crate::commands::exit_app(app),
                 _ => {}
             }
         })
@@ -108,7 +108,7 @@ fn build_menu(app: &AppHandle) -> Result<Menu<tauri::Wry>, String> {
     let mode_tray = MenuItem::with_id(
         app,
         "mode_tray",
-        if zh { "托盘面板" } else { "Tray panel" },
+        if zh { "任务栏组件" } else { "Taskbar widget" },
         true,
         None::<&str>,
     )
