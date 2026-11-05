@@ -129,7 +129,7 @@ npm run tauri build
 
 公钥已经写入 `src-tauri/tauri.conf.json` 的 `plugins.updater.pubkey`。私钥只放在 GitHub Secrets 中，不要提交到仓库。
 
-工作流检测到 `TAURI_SIGNING_PRIVATE_KEY` 后会自动启用 `bundle.createUpdaterArtifacts` 并上传 `latest.json`；未配置时仍会正常构建和发布普通安装包，只是该版本不支持应用内更新。
+发布工作流在缺少 `TAURI_SIGNING_PRIVATE_KEY` 时会直接失败并给出提示，避免发布一个无法自动更新的版本。私钥一旦丢失，已经安装的版本将无法验证后续更新包，只能手动安装一次新版本，请妥善备份。
 
 ### Linux 依赖（预留）
 

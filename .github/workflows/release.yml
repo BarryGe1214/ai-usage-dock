@@ -61,19 +61,16 @@ jobs:
         with:
           workspaces: src-tauri
       - run: npm ci
-      - name: Detect updater signing key
-        id: signing
+      - name: Verify updater signing key
         shell: bash
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
         run: |
-          if [ -n "$TAURI_SIGNING_PRIVATE_KEY" ]; then
-            echo '{"bundle":{"createUpdaterArtifacts":true}}' > updater.config.json
-            echo "enabled=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "enabled=false" >> "$GITHUB_OUTPUT"
-            echo "::warning::TAURI_SIGNING_PRIVATE_KEY is not configured; building installers without updater artifacts."
+          if [ -z "$TAURI_SIGNING_PRIVATE_KEY" ]; then
+            echo "::error::TAURI_SIGNING_PRIVATE_KEY is not configured. Add the signing private key in Settings > Secrets and variables > Actions, otherwise the published release would break in-app updates."
+            exit 1
           fi
+          echo '{"bundle":{"createUpdaterArtifacts":true}}' > updater.config.json
       - name: Build and publish
         uses: tauri-apps/tauri-action@v0
         env:
@@ -90,8 +87,8 @@ jobs:
             - Existing installations can update in place from Settings → Software update.
           releaseDraft: ${{ github.event_name == 'workflow_dispatch' && inputs.draft }}
           prerelease: false
-          includeUpdaterJson: ${{ steps.signing.outputs.enabled == 'true' }}
-          args: --bundles nsis,msi ${{ steps.signing.outputs.enabled == 'true' && '--config updater.config.json' || '' }}
+          includeUpdaterJson: true
+          args: --bundles nsis,msi --config updater.config.json
 
   # Linux and macOS builds are intentionally left commented until the
   # platform-specific tray/window behavior has been verified.
