@@ -194,7 +194,7 @@ fn parse_summary(value: &Value) -> FuncloudSummary {
 }
 
 fn parse_daily(value: &Value) -> Vec<DailyUsage> {
-    let mut rows = value
+    let mut rows: Vec<DailyUsage> = value
         .get("list")
         .and_then(Value::as_array)
         .map(|items| {
