@@ -86,7 +86,7 @@ export default function App() {
       if (info) {
         setUpdate({ info, phase: "available", progress: 0 });
       } else {
-        setUpdate({ info: null, phase: manual ? "uptodate" : "idle", progress: 0 });
+        setUpdate({ info: null, phase: "uptodate", progress: 0 });
       }
     } catch (error) {
       setUpdate({
