@@ -26,7 +26,6 @@ import type { AccountView, AppConfig, CodexCheck, UpdateState, UsageSnapshot } f
 import {
   addFuncloudAccount,
   checkCodex,
-  closeSettings,
   openUrl,
   quitApp,
   removeAccount,
@@ -46,6 +45,7 @@ interface SettingsPageProps {
   version: string;
   codexPath?: string | null;
   onConfigChange: (config: AppConfig) => void;
+  onClose: () => void;
   update: UpdateState;
   onCheckUpdate: () => void;
   onInstallUpdate: () => void;
@@ -75,6 +75,7 @@ export function SettingsPage({
   version,
   codexPath,
   onConfigChange,
+  onClose,
   update,
   onCheckUpdate,
   onInstallUpdate,
@@ -95,6 +96,16 @@ export function SettingsPage({
     const timer = window.setTimeout(() => setToast(null), 2800);
     return () => window.clearTimeout(timer);
   }, [toast]);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && !form && !deleteTarget) {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [deleteTarget, form, onClose]);
 
   const codexSnapshot = snapshots.find((snapshot) => snapshot.provider === "codex");
   const funcloudAccounts = accounts.filter(
@@ -223,7 +234,7 @@ export function SettingsPage({
 
   return (
     <div className="settings-window">
-      <header className="settings-header" data-tauri-drag-region>
+      <header className="settings-header">
         <div className="settings-heading" data-tauri-drag-region>
           <Logo size={38} />
           <div data-tauri-drag-region>
@@ -233,7 +244,7 @@ export function SettingsPage({
         </div>
         <button
           className="icon-button"
-          onClick={() => void closeSettings()}
+          onClick={onClose}
           title={t("close")}
           aria-label={t("close")}
         >

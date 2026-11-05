@@ -5,13 +5,13 @@ import {
   ChevronDown,
   ChevronUp,
   Cloud,
+  Minus,
   PanelRight,
   PanelTop,
   Power,
   RefreshCw,
   Settings,
   Sparkles,
-  X,
 } from "lucide-react";
 
 import type { Translator } from "../i18n";
@@ -184,7 +184,7 @@ export function Dock({
             title={t("hide")}
             aria-label={t("hide")}
           >
-            <X size={15} />
+            <Minus size={15} />
           </button>
           <button
             className="icon-button danger"

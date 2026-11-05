@@ -32,7 +32,9 @@ pub fn run() {
 
             app.manage(state::AppState::new(config.clone(), snapshots, client));
             tray::setup(app.handle())?;
-            window::apply_mode(app.handle(), &config)?;
+            if let Err(error) = window::apply_mode(app.handle(), &config) {
+                eprintln!("apply_mode failed: {error}");
+            }
 
             let launched_at_login = std::env::args().any(|argument| argument == "--autostart");
             if !launched_at_login {

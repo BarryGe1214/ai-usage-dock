@@ -53,7 +53,10 @@ pub async fn update_preferences(
         || previous.floating_expanded != config.floating_expanded
         || previous.always_on_top != config.always_on_top
     {
-        window::apply_mode(&app, &config)?;
+        // 配置已经保存，布局失败不应让前端回滚用户的选择。
+        if let Err(error) = window::apply_mode(&app, &config) {
+            eprintln!("apply_mode failed: {error}");
+        }
     }
     if previous.funcloud_base_url != config.funcloud_base_url {
         let app_handle = app.clone();
@@ -266,7 +269,9 @@ pub fn set_ui_mode(app: AppHandle, mode: UiMode) -> Result<ConfigView, String> {
     config.ui_mode = mode;
     state.replace_config(config.clone());
     config::save(&app, &config)?;
-    window::apply_mode(&app, &config)?;
+    if let Err(error) = window::apply_mode(&app, &config) {
+        eprintln!("apply_mode failed: {error}");
+    }
     let _ = window::show_main(&app);
     let view = ConfigView::from(&config);
     let _ = app.emit("config://updated", &view);

@@ -14,6 +14,7 @@ import type {
 import { makeTranslator } from "./i18n";
 import {
   checkUpdate,
+  closeSettings,
   getBootstrap,
   hideMain,
   installUpdate,
@@ -125,6 +126,16 @@ export default function App() {
 
   const restartForUpdate = useCallback(() => {
     void restartApp();
+  }, []);
+
+  const handleCloseSettings = useCallback(async () => {
+    // 先切回主界面，避免后端窗口恢复失败时停留在设置页。
+    setView("dock");
+    try {
+      await closeSettings();
+    } catch (error) {
+      console.error("close_settings failed", error);
+    }
   }, []);
 
   useEffect(() => {
@@ -259,6 +270,7 @@ export default function App() {
         version={bootstrap.version}
         codexPath={bootstrap.codexPath}
         onConfigChange={setConfig}
+        onClose={handleCloseSettings}
         update={update}
         onCheckUpdate={() => void runUpdateCheck(true)}
         onInstallUpdate={() => void installAvailableUpdate()}

@@ -161,7 +161,10 @@ pub fn show_main(app: &AppHandle) -> Result<(), String> {
 
     if !settings_open {
         let config = app.state::<AppState>().config();
-        apply_mode(app, &config)?;
+        // 布局恢复失败不应阻止窗口显示，否则任务栏组件会“消失”。
+        if let Err(error) = apply_mode(app, &config) {
+            eprintln!("apply_mode failed: {error}");
+        }
     }
 
     window
@@ -232,24 +235,12 @@ pub fn open_settings(app: &AppHandle) -> Result<(), String> {
 
 pub fn close_settings(app: &AppHandle) -> Result<(), String> {
     let state = app.state::<AppState>();
-    if !state.settings_open.swap(false, Ordering::SeqCst) {
-        return Ok(());
-    }
+    state.settings_open.store(false, Ordering::SeqCst);
 
-    let config = state.config();
-    apply_mode(app, &config)?;
-
-    if let Some(window) = app.get_webview_window("main") {
-        window
-            .show()
-            .map_err(|error| format!("无法显示窗口: {error}"))?;
-        window
-            .set_focus()
-            .map_err(|error| format!("无法聚焦窗口: {error}"))?;
-    }
-
+    // 先切回主视图：即使后续窗口尺寸/位置恢复失败，界面也不会卡在设置页。
     let _ = app.emit("ui://view", ViewEvent { view: "dock" });
-    Ok(())
+
+    show_main(app)
 }
 
 pub fn remember_floating_position(app: &AppHandle) {
