@@ -94,9 +94,11 @@ npm run tauri build
 仓库已启用两套工作流：
 
 - `.github/workflows/ci.yml`：push / PR 时构建前端（`tsc + vite`）并运行 Rust 单元测试。
-- `.github/workflows/release.yml`：手动触发或推送 `v*` tag 时，在 Windows 上构建 NSIS / MSI 并上传到 draft Release。
+- `.github/workflows/release.yml`：手动触发时在 Windows 上构建 NSIS / MSI 并上传到 draft Release。
 
-发布新版本：先修改 `src-tauri/tauri.conf.json` 与 `src-tauri/Cargo.toml` 中的版本号，再到 Actions 页面手动运行 `Release`，或推送 `vX.Y.Z` tag。
+发布新版本：先修改 `src-tauri/tauri.conf.json` 与 `src-tauri/Cargo.toml` 中的版本号并提交，再到 Actions 页面手动运行 `Release`，构建完成后在 Releases 页面 Publish。
+
+> Release 工作流只保留手动触发。若同时监听 `v*` tag，发布 draft 时 GitHub 会创建 tag 并再次触发构建，对同一个 Release 重复上传。
 
 ### Linux 依赖（预留）
 
