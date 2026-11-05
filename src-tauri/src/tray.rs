@@ -108,7 +108,7 @@ fn build_menu(app: &AppHandle) -> Result<Menu<tauri::Wry>, String> {
     let mode_tray = MenuItem::with_id(
         app,
         "mode_tray",
-        if zh { "任务栏组件" } else { "Taskbar widget" },
+        if zh { "任务栏面板" } else { "Taskbar panel" },
         true,
         None::<&str>,
     )

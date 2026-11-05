@@ -12,6 +12,11 @@ dist
 dist-ssr
 *.local
 
+# C# widget provider build output
+widget-provider/bin/
+widget-provider/obj/
+artifacts/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

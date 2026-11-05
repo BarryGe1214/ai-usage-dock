@@ -237,6 +237,7 @@ async fn refresh(app: AppHandle, only_account: Option<String>) -> Vec<UsageSnaps
 
     let list = state.snapshot_list();
     save_cache(&app, &list);
+    crate::widget_feed::write(&app, &list);
     tray::update_tooltip(&app, &list);
     let _ = app.emit("usage://updated", &list);
     list

@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Package
+  xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+  xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+  xmlns:uap3="http://schemas.microsoft.com/appx/manifest/uap/windows10/3"
+  xmlns:uap10="http://schemas.microsoft.com/appx/manifest/uap/windows10/10"
+  xmlns:com="http://schemas.microsoft.com/appx/manifest/com/windows10"
+  xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
+  IgnorableNamespaces="uap3 uap10 com rescap">
+
+  <Identity
+    Name="BarryGe1214.AIUsageDock.Widget"
+    Publisher="CN=AI Usage Dock"
+    Version="1.0.0.0"
+    ProcessorArchitecture="x64" />
+
+  <Properties>
+    <DisplayName>AI Usage Dock Widget</DisplayName>
+    <PublisherDisplayName>BarryGe1214</PublisherDisplayName>
+    <Logo>Assets\StoreLogo.png</Logo>
+  </Properties>
+
+  <Dependencies>
+    <TargetDeviceFamily
+      Name="Windows.Desktop"
+      MinVersion="10.0.22621.0"
+      MaxVersionTested="10.0.26100.0" />
+  </Dependencies>
+
+  <Resources>
+    <Resource Language="en-us" />
+  </Resources>
+
+  <Applications>
+    <Application
+      Id="App"
+      Executable="AiUsageDock.WidgetProvider.exe"
+      EntryPoint="Windows.FullTrustApplication"
+      uap10:TrustLevel="mediumIL"
+      uap10:RuntimeBehavior="win32App">
+      <uap:VisualElements
+        DisplayName="AI Usage Dock Widget"
+        Description="Shows OpenAI Codex and Funcloud quota in the Windows 11 widgets board."
+        BackgroundColor="transparent"
+        Square150x150Logo="Assets\Square150x150Logo.png"
+        Square44x44Logo="Assets\Square44x44Logo.png" />
+
+      <Extensions>
+        <com:Extension Category="windows.comServer">
+          <com:ComServer>
+            <com:ExeServer
+              Executable="AiUsageDock.WidgetProvider.exe"
+              DisplayName="AI Usage Dock Widget Provider">
+              <com:Class
+                Id="3F2C9A7E-6B1D-4E8A-9C5B-2D7F4A1C8E30"
+                DisplayName="AI Usage Dock Widget Provider" />
+            </com:ExeServer>
+          </com:ComServer>
+        </com:Extension>
+
+        <uap3:Extension Category="windows.appExtension">
+          <uap3:AppExtension
+            Name="com.microsoft.windows.widgets"
+            DisplayName="AI Usage Dock"
+            Id="AIUsageDockWidgetProvider">
+            <uap3:Properties>
+              <WidgetProvider>
+                <ProviderIcons>
+                  <Icon Path="ProviderAssets\AIUsageDock_Icon.png" />
+                </ProviderIcons>
+                <Activation>
+                  <CreateInstance ClassId="3F2C9A7E-6B1D-4E8A-9C5B-2D7F4A1C8E30" />
+                </Activation>
+                <Definitions>
+                  <Definition
+                    Id="AIUsageDock_Widget"
+                    DisplayName="AI Usage Dock"
+                    Description="OpenAI Codex remaining quota and Funcloud API spend."
+                    AllowMultiple="true">
+                    <Capabilities>
+                      <Capability>
+                        <Size Name="small" />
+                      </Capability>
+                      <Capability>
+                        <Size Name="medium" />
+                      </Capability>
+                    </Capabilities>
+                    <ThemeResources>
+                      <Icons>
+                        <Icon Path="ProviderAssets\AIUsageDock_Icon.png" />
+                      </Icons>
+                      <Screenshots>
+                        <Screenshot
+                          Path="ProviderAssets\AIUsageDock_Screenshot.png"
+                          DisplayAltText="AI Usage Dock widget showing Codex quota and Funcloud cost" />
+                      </Screenshots>
+                    </ThemeResources>
+                  </Definition>
+                </Definitions>
+              </WidgetProvider>
+            </uap3:Properties>
+          </uap3:AppExtension>
+        </uap3:Extension>
+      </Extensions>
+    </Application>
+  </Applications>
+
+  <Capabilities>
+    <rescap:Capability Name="runFullTrust" />
+  </Capabilities>
+</Package>

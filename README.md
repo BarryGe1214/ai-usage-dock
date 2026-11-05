@@ -8,10 +8,11 @@
 
 - **OpenAI Codex 额度**：读取本机 Codex CLI 当前登录账号的 5 小时 / 7 天额度、重置时间、套餐和 Credits。
 - **Funcloud 多账号**：同一个供应商可添加多个 API Key，分别显示 5 小时、每日、每周、每月或总额度窗口，以及今日费用、累计费用、Tokens、RPM / TPM、近 7 天费用和模型用量。
-- **三种显示形态**：
+- **三种应用内显示形态**：
   - 悬浮窗：无边框、置顶、可拖动，紧凑 / 展开两种高度。
   - 贴边侧栏：吸附屏幕左侧或右侧，占满可用高度。
-  - 任务栏组件：340px 宽的小组件固定在任务栏上方、屏幕右下角，常驻显示，不因失焦隐藏。
+  - 任务栏面板：340px 宽的面板固定在任务栏上方、屏幕右下角，常驻显示，不因失焦隐藏。
+- **Windows 11 系统小组件**：独立 MSIX 提供的原生 Widgets Board 小组件（小 / 中尺寸），可在 `Win+W` 小组件面板中固定，显示 Codex 剩余额度与 Funcloud 今日费用。
 - **托盘常驻**：托盘图标显示聚合额度提示，右键菜单可刷新、切换形态、打开设置或退出。
 - **退出方式**：标题栏电源按钮、设置页“退出应用”、托盘右键“退出”均可关闭程序；隐藏按钮只是收起窗口。
 - **内置设置页**：点击齿轮后主窗口直接切换到设置视图，关闭后恢复原来的形态和位置。
@@ -50,6 +51,68 @@ Codex 的 `app-server` 协议由本机 Codex CLI 提供，不同 Codex 版本可
 安装后可以在应用内检查更新（设置 → 关于 → 软件更新），无需手动下载新版本。
 
 当前构建未做代码签名，Windows 可能显示“未知发布者”。确认来源可信后选择“更多信息 → 仍要运行”。
+
+### Windows 11 系统小组件（Widgets Board）
+
+> 这是 Windows 11 自带的 `Win+W` 小组件面板里的原生卡片，不是应用的悬浮窗。它需要单独安装一个 MSIX 包，只有 Windows 11 22H2（build 22621）及以上支持。
+
+Release 中会附带三个文件：
+
+- `AIUsageDock.Widget.msix`：小组件 Provider 本体
+- `AIUsageDock.Widget.cer`：自签名证书
+- `install-widget.ps1`：安装脚本
+
+安装步骤：
+
+1. 先安装并运行主程序，让它至少完成一次额度刷新（主程序会把数据写入 `%LOCALAPPDATA%\com.barryge1214.aiusagedock\widget.json`）。
+2. 把上面三个文件放在同一个目录。
+3. 右键 `install-widget.ps1` → **使用 PowerShell 运行**；或在 PowerShell 中执行：
+
+   ```powershell
+   powershell -ExecutionPolicy Bypass -File .\install-widget.ps1
+   ```
+
+   脚本会把证书导入 `CurrentUser\TrustedPeople`，然后执行 `Add-AppxPackage`。
+4. 按 `Win+W` 打开小组件面板 → 点击 **+ 添加小组件** → 选择 **AI Usage Dock** 并固定。
+
+说明：
+
+- 这是侧载（sideload）安装，必须信任自签名证书。若提示证书不受信任（`0x800B0109`），用管理员 PowerShell 再导入一次到机器级：
+
+  ```powershell
+  Import-Certificate -FilePath .\AIUsageDock.Widget.cer -CertStoreLocation Cert:\LocalMachine\TrustedPeople
+  ```
+
+- 小组件读取主程序导出的数据；主程序在后台刷新后，卡片会在 30 秒内更新，也可以点击卡片上的“刷新”。
+- 如果 `Win+W` 的小组件库里暂时看不到它，先确认安装成功（`Get-AppxPackage BarryGe1214.AIUsageDock.Widget`），然后重启一次 `Widgets.exe` 或重启系统。
+- 卸载：**设置 → 应用 → 已安装的应用 → AI Usage Dock Widget → 卸载**。
+- 如果后续 Release 更换了签名证书，重新运行一次 `install-widget.ps1` 即可。
+
+#### 配置固定的小组件签名证书（可选，推荐）
+
+默认情况下 CI 每次发布会生成临时证书，升级小组件后需要重新信任新的 `.cer`。如果希望所有版本使用同一张证书：
+
+1. 在本地 PowerShell 生成一张代码签名证书：
+
+   ```powershell
+   $cert = New-SelfSignedCertificate -Type Custom -Subject "CN=AI Usage Dock" `
+     -KeyUsage DigitalSignature -KeySpec Signature -FriendlyName "AI Usage Dock Widget Signing" `
+     -CertStoreLocation Cert:\CurrentUser\My -KeyExportPolicy Exportable -NotAfter (Get-Date).AddYears(10) `
+     -TextExtension @("2.5.29.37={text}1.3.6.1.5.5.7.3.3")
+   $password = "换成你自己的密码"
+   Export-PfxCertificate -Cert $cert -FilePath .\AIUsageDock.Widget.pfx `
+     -Password (ConvertTo-SecureString $password -Force -AsPlainText)
+   [Convert]::ToBase64String([IO.File]::ReadAllBytes(".\AIUsageDock.Widget.pfx")) | Set-Clipboard
+   ```
+
+2. 在仓库 **Settings → Secrets and variables → Actions** 添加：
+
+   | Secret | 内容 |
+   | --- | --- |
+   | `WIDGET_SIGNING_PFX_BASE64` | 上一步复制到剪贴板的 PFX Base64 |
+   | `WIDGET_SIGNING_PFX_PASSWORD` | PFX 密码 |
+
+未配置这两个 Secret 时构建不会失败，但每次发布都会使用新证书。
 
 ### 添加 Funcloud 账号
 
@@ -154,10 +217,17 @@ ai-usage-dock/
 ├─ src-tauri/
 │  ├─ src/commands.rs        # Tauri 命令
 │  ├─ src/state.rs           # 聚合刷新、缓存、定时任务
+│  ├─ src/widget_feed.rs     # 导出 Windows 小组件数据（widget.json）
 │  ├─ src/providers/         # Funcloud / Codex Provider
 │  ├─ src/window.rs          # 三形态窗口定位
 │  ├─ src/tray.rs            # 系统托盘与菜单
 │  └─ src/credentials.rs     # 系统凭据库
+├─ widget-provider/          # Windows 11 原生小组件（C# + MSIX）
+│  ├─ UsageWidgetProvider.cs # IWidgetProvider 实现
+│  ├─ WidgetTemplates.cs     # Adaptive Cards 模板
+│  ├─ Package.appxmanifest   # MSIX 清单（COM Server + widgets appExtension）
+│  ├─ build-widget.ps1       # 打包、自签名、生成安装脚本
+│  └─ install-widget.ps1     # 终端用户安装脚本
 ├─ .github/workflows/        # CI 与 Windows Release 构建
 └─ README.md
 ```
@@ -183,12 +253,12 @@ Provider 只需要返回统一的 `UsageSnapshot`：
 
 ## English
 
-AI Usage Dock is a Windows-first desktop widget for monitoring **OpenAI Codex** subscription limits and **Funcloud** API-key usage. It offers a floating widget, a docked sidebar, and a compact taskbar widget, with a bilingual UI, multiple Funcloud accounts, OS credential storage, and a cross-platform Tauri architecture.
+AI Usage Dock is a Windows-first desktop widget for monitoring **OpenAI Codex** subscription limits and **Funcloud** API-key usage. It offers a floating widget, a docked sidebar, and a compact taskbar panel, plus a native Windows 11 Widgets Board provider (installed as a separate MSIX), with a bilingual UI, multiple Funcloud accounts, OS credential storage, and a cross-platform Tauri architecture.
 
 - Codex data comes from the locally signed-in `codex app-server` (`account/rateLimits/read`), not from scraped ChatGPT cookies.
 - Funcloud data comes from the same endpoints used by `https://funcloud.ai/key-usage`.
 - Secrets are stored in Windows Credential Manager / Secret Service / Keychain.
-- Windows installers are built by GitHub Actions (`.github/workflows/release.yml`); CI runs the frontend build and Rust tests on every push. Linux and macOS builds are planned.
+- Windows installers are built by GitHub Actions (`.github/workflows/release.yml`); the same workflow builds the signed Windows 11 widget MSIX. CI runs the frontend build and Rust tests on every push. Linux and macOS builds are planned.
 - The app checks GitHub Releases for signed updates on startup and can install them in place from **Settings → About → Software update**.
 
 ## Privacy
