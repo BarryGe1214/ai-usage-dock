@@ -43,7 +43,9 @@ internal static class WidgetFeedStore
                 return new WidgetFeed();
             }
 
-            using var stream = File.OpenRead(FeedPath);
+            // Allow the desktop app to atomically replace the feed while it is read.
+            using var stream = new FileStream(
+                FeedPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
             return JsonSerializer.Deserialize<WidgetFeed>(stream, Options) ?? new WidgetFeed();
         }
         catch (Exception exception)

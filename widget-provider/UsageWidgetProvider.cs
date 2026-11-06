@@ -11,6 +11,7 @@ internal sealed class UsageWidgetProvider : IWidgetProvider
     private sealed class WidgetState
     {
         public string Size { get; set; } = "medium";
+        public string? LastUpdatedAt { get; set; }
     }
 
     private static readonly object Gate = new();
@@ -18,7 +19,6 @@ internal sealed class UsageWidgetProvider : IWidgetProvider
     private static readonly ManualResetEvent EmptyListEvent = new(false);
 
     private static Timer? _timer;
-    private static string? _lastUpdatedAt;
     private static bool _everHadWidget;
 
     public UsageWidgetProvider()
@@ -124,7 +124,7 @@ internal sealed class UsageWidgetProvider : IWidgetProvider
         }
     }
 
-    private static void UpdateWidget(string widgetId)
+    private static void UpdateWidget(string widgetId, bool skipUnchanged = false)
     {
         string size;
         lock (Gate)
@@ -140,6 +140,15 @@ internal sealed class UsageWidgetProvider : IWidgetProvider
         try
         {
             var feed = WidgetFeedStore.Load();
+            lock (Gate)
+            {
+                if (skipUnchanged && !string.IsNullOrEmpty(feed.UpdatedAt) &&
+                    Widgets.TryGetValue(widgetId, out var current) &&
+                    current.LastUpdatedAt == feed.UpdatedAt)
+                {
+                    return;
+                }
+            }
             var options = new WidgetUpdateRequestOptions(widgetId)
             {
                 Template = WidgetTemplates.ForSize(size),
@@ -151,7 +160,10 @@ internal sealed class UsageWidgetProvider : IWidgetProvider
 
             lock (Gate)
             {
-                _lastUpdatedAt = feed.UpdatedAt;
+                if (Widgets.TryGetValue(widgetId, out var current))
+                {
+                    current.LastUpdatedAt = feed.UpdatedAt;
+                }
             }
         }
         catch (Exception exception)
@@ -182,7 +194,6 @@ internal sealed class UsageWidgetProvider : IWidgetProvider
         try
         {
             string[] widgetIds;
-            string? previousUpdatedAt;
             lock (Gate)
             {
                 if (Widgets.Count == 0)
@@ -191,18 +202,11 @@ internal sealed class UsageWidgetProvider : IWidgetProvider
                 }
 
                 widgetIds = Widgets.Keys.ToArray();
-                previousUpdatedAt = _lastUpdatedAt;
-            }
-
-            var feed = WidgetFeedStore.Load();
-            if (!string.IsNullOrEmpty(feed.UpdatedAt) && feed.UpdatedAt == previousUpdatedAt)
-            {
-                return;
             }
 
             foreach (var widgetId in widgetIds)
             {
-                UpdateWidget(widgetId);
+                UpdateWidget(widgetId, skipUnchanged: true);
             }
         }
         catch (Exception exception)

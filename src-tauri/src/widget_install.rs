@@ -3,7 +3,6 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Mutex, OnceLock};
 use std::time::{Duration, Instant};
 
-use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager};
 
 const PACKAGE_NAME: &str = "BarryGe1214.AIUsageDock.Widget";
@@ -22,35 +21,7 @@ struct InstallAttempt {
     attempted_at: u64,
 }
 
-/// Status of the Windows 11 widget package, mirrored to the settings window.
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct WidgetStatus {
-    pub supported: bool,
-    pub installed: bool,
-    pub installed_version: Option<String>,
-    pub target_version: String,
-    pub phase: String,
-    pub downloaded: u64,
-    pub total: Option<u64>,
-    pub error: Option<String>,
-}
-
-impl WidgetStatus {
-    fn new() -> Self {
-        let supported = cfg!(windows);
-        Self {
-            supported,
-            installed: false,
-            installed_version: None,
-            target_version: target_version(),
-            phase: if supported { "idle" } else { "unsupported" }.to_string(),
-            downloaded: 0,
-            total: None,
-            error: None,
-        }
-    }
-}
+pub use crate::widget_install_status::WidgetStatus;
 
 pub struct WidgetInstaller {
     status: Mutex<WidgetStatus>,
@@ -60,7 +31,7 @@ pub struct WidgetInstaller {
 impl WidgetInstaller {
     pub fn new() -> Self {
         Self {
-            status: Mutex::new(WidgetStatus::new()),
+            status: Mutex::new(WidgetStatus::new(target_version(), cfg!(windows))),
             busy: AtomicBool::new(false),
         }
     }
@@ -212,8 +183,12 @@ async fn run_install(app: AppHandle, force: bool) -> WidgetStatus {
         });
     }
 
+    let status = installer.status();
+    if status.phase == "done" {
+        clear_failure(&app);
+    }
     installer.busy.store(false, Ordering::SeqCst);
-    installer.status()
+    status
 }
 
 async fn install_inner(app: &AppHandle, force: bool) -> Result<(), String> {
@@ -266,23 +241,23 @@ async fn install_inner(app: &AppHandle, force: bool) -> Result<(), String> {
         .await
         .map_err(|error| format!("无法创建临时目录: {error}"))?;
 
-    let outcome = install_package(app, &work_dir).await;
+    let outcome = install_package(app, &work_dir, force).await;
     let _ = tokio::fs::remove_dir_all(&work_dir).await;
     outcome?;
 
     let installed = blocking(query_installed_version).await?;
+    let mut verification = Ok(());
     installer.update(app, |status| {
-        status.installed = installed.is_some();
-        status.installed_version = installed.clone();
-        status.phase = "done".to_string();
+        verification = status.complete_install(installed);
     });
-    if installed.is_none() {
-        return Err("小组件安装后未能检测到已注册的包".to_string());
-    }
-    Ok(())
+    verification
 }
 
-async fn install_package(app: &AppHandle, work_dir: &Path) -> Result<(), String> {
+async fn install_package(
+    app: &AppHandle,
+    work_dir: &Path,
+    allow_trust_prompt: bool,
+) -> Result<(), String> {
     let installer = app.state::<WidgetInstaller>();
     let tag = format!("v{}", env!("CARGO_PKG_VERSION"));
     let base = format!("{RELEASES_URL}/{tag}");
@@ -310,8 +285,8 @@ async fn install_package(app: &AppHandle, work_dir: &Path) -> Result<(), String>
     )
     .await?;
 
-    let script_path = write_install_script(work_dir, &msix_path, &cert_path).await?;
-    blocking(move || run_powershell_file(&script_path)).await?;
+    let script_path = write_install_script(work_dir).await?;
+    blocking(move || run_powershell_file(&script_path, allow_trust_prompt)).await?;
     Ok(())
 }
 
@@ -325,6 +300,9 @@ async fn download_file(
     use tokio::io::AsyncWriteExt;
 
     let installer = app.state::<WidgetInstaller>();
+    if track_progress {
+        installer.update(app, WidgetStatus::begin_download);
+    }
     let response = client()
         .get(url)
         .send()
@@ -371,44 +349,17 @@ async fn download_file(
     Ok(())
 }
 
-async fn write_install_script(
-    work_dir: &Path,
-    msix_path: &Path,
-    cert_path: &Path,
-) -> Result<PathBuf, String> {
+async fn write_install_script(work_dir: &Path) -> Result<PathBuf, String> {
     let script_path = work_dir.join("install-widget.ps1");
-    let script = format!(
-        "$ErrorActionPreference = 'Stop'\n\
-         $certificatePath = '{cert}'\n\
-         $packagePath = '{msix}'\n\
-         $expectedThumbprint = '{thumbprint}'\n\
-         $store = 'Cert:\\CurrentUser\\TrustedPeople'\n\
-         $certificate = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2($certificatePath)\n\
-         if ($certificate.Thumbprint -ne $expectedThumbprint) {{\n\
-           throw \"Unexpected signing certificate: $($certificate.Thumbprint)\"\n\
-         }}\n\
-         $trusted = @(Get-ChildItem -Path $store | Where-Object {{ $_.Thumbprint -eq $expectedThumbprint }})\n\
-         if ($trusted.Count -eq 0) {{\n\
-           Import-Certificate -FilePath $certificatePath -CertStoreLocation $store | Out-Null\n\
-         }}\n\
-         Add-AppxPackage -Path $packagePath -ForceUpdateFromAnyVersion -ForceApplicationShutdown\n",
-        cert = ps_literal(&cert_path.display().to_string()),
-        msix = ps_literal(&msix_path.display().to_string()),
-        thumbprint = CERT_THUMBPRINT,
-    );
-
-    // Windows PowerShell 5.1 reads scripts without a BOM as ANSI, which breaks
-    // non-ASCII temporary paths, so always write a UTF-8 BOM.
-    let mut contents = String::from("\u{feff}");
-    contents.push_str(&script);
-    tokio::fs::write(&script_path, contents)
+    let script = include_str!("../../widget-provider/install-widget.ps1");
+    if !script.contains(CERT_THUMBPRINT) {
+        return Err("小组件安装脚本的证书指纹与主程序不一致".to_string());
+    }
+    // Windows PowerShell 5.1 needs a BOM to read non-ASCII script text.
+    tokio::fs::write(&script_path, format!("\u{feff}{script}"))
         .await
         .map_err(|error| format!("无法写入安装脚本: {error}"))?;
     Ok(script_path)
-}
-
-fn ps_literal(value: &str) -> String {
-    value.replace('\'', "''")
 }
 
 fn client() -> &'static reqwest::Client {
@@ -464,6 +415,11 @@ fn run_powershell_command(script: &str) -> Result<String, String> {
     {
         use std::os::windows::process::CommandExt;
 
+        let script = format!(
+            "[Console]::OutputEncoding = New-Object System.Text.UTF8Encoding($false); \
+             $OutputEncoding = [Console]::OutputEncoding; $ErrorActionPreference = 'Stop'; \
+             try {{ {script} }} catch {{ [Console]::Error.WriteLine($_.Exception.Message); exit 1 }}"
+        );
         let output = std::process::Command::new("powershell.exe")
             .args([
                 "-NoProfile",
@@ -471,7 +427,7 @@ fn run_powershell_command(script: &str) -> Result<String, String> {
                 "-ExecutionPolicy",
                 "Bypass",
                 "-Command",
-                script,
+                &script,
             ])
             .creation_flags(CREATE_NO_WINDOW)
             .output()
@@ -493,12 +449,13 @@ fn run_powershell_command(script: &str) -> Result<String, String> {
     }
 }
 
-fn run_powershell_file(script: &Path) -> Result<(), String> {
+fn run_powershell_file(script: &Path, allow_trust_prompt: bool) -> Result<(), String> {
     #[cfg(windows)]
     {
         use std::os::windows::process::CommandExt;
 
-        let output = std::process::Command::new("powershell.exe")
+        let mut command = std::process::Command::new("powershell.exe");
+        command
             .args([
                 "-NoProfile",
                 "-NonInteractive",
@@ -506,7 +463,11 @@ fn run_powershell_file(script: &Path) -> Result<(), String> {
                 "Bypass",
                 "-File",
             ])
-            .arg(script)
+            .arg(script);
+        if !allow_trust_prompt {
+            command.arg("-NoTrustPrompt");
+        }
+        let output = command
             .creation_flags(CREATE_NO_WINDOW)
             .output()
             .map_err(|error| format!("无法启动 PowerShell: {error}"))?;
@@ -519,6 +480,8 @@ fn run_powershell_file(script: &Path) -> Result<(), String> {
                     "小组件安装失败，退出码 {}",
                     output.status.code().unwrap_or(-1)
                 )
+            } else if message.contains("WIDGET_TRUST_REQUIRED:") {
+                "小组件证书尚未被本机信任（0x800B0109）。请点击安装，并在 Windows 提示中授权；如使用其他管理员账号授权，安装仍会继续在当前账号下完成。".to_string()
             } else {
                 message
             });
@@ -527,7 +490,7 @@ fn run_powershell_file(script: &Path) -> Result<(), String> {
     }
     #[cfg(not(windows))]
     {
-        let _ = script;
+        let _ = (script, allow_trust_prompt);
         Err("仅支持 Windows".to_string())
     }
 }

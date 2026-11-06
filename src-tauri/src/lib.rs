@@ -7,6 +7,7 @@ mod state;
 mod tray;
 mod widget_feed;
 mod widget_install;
+mod widget_install_status;
 mod window;
 
 use tauri::{Manager, WindowEvent};

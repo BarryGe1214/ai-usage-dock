@@ -1,6 +1,6 @@
 [package]
 name = "ai-usage-dock"
-version = "0.1.7"
+version = "0.1.8"
 description = "Desktop dock that shows OpenAI Codex and Funcloud API quota across multiple accounts."
 authors = ["BarryGe1214"]
 edition = "2024"

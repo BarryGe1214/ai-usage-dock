@@ -74,7 +74,7 @@ Codex 的 `app-server` 协议由本机 Codex CLI 提供，不同 Codex 版本可
    powershell -ExecutionPolicy Bypass -File .\install-widget.ps1
    ```
 
-   脚本会把证书导入 `CurrentUser\TrustedPeople`，然后执行 `Add-AppxPackage`。
+   脚本会先核对固定证书指纹；若本机尚未信任该证书，将通过 Windows UAC 请求管理员授权，导入 `LocalMachine\TrustedPeople`。随后仍以原用户身份执行 `Add-AppxPackage`，避免把小组件装到另一个管理员账号。
 4. 按 `Win+W` 打开小组件面板 → 点击 **+ 添加小组件** → 选择 **AI Usage Dock** 并固定。
 
 说明：

@@ -74,6 +74,18 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "8.0.x"
+      - name: Test frontend and native backend
+        run: |
+          npm run build
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cargo test --locked --manifest-path src-tauri/Cargo.toml
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Test widget behavior and installation policy
+        shell: pwsh
+        run: |
+          dotnet run --project tests/WidgetProviderLogic/WidgetProviderLogic.csproj
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          ./tests/Test-WidgetInstaller.ps1
       - name: Build Windows 11 widget package
         shell: pwsh
         env:
@@ -104,10 +116,11 @@ jobs:
           releaseBody: |
             AI Usage Dock __VERSION__
 
-            - Windows installers: NSIS (recommended) and MSI.
-            - Windows 11 native widget: installed and updated automatically by the app. Manual fallback files (AIUsageDock.Widget.msix, AIUsageDock.Widget.cer, install-widget.ps1) are attached too.
-            - Existing installations can update in place from Settings → Software update.
-          releaseDraft: ${{ github.event_name == 'workflow_dispatch' && inputs.draft }}
+            - Fix Windows widget installation error 0x800B0109. If certificate authorization is needed, click Install in Settings and approve the Windows UAC prompt once.
+            - Fix garbled PowerShell errors, download progress, and installed-version verification.
+            - Fix missed updates across multiple widget cards and allow atomic feed replacement.
+            - Update from Settings → Software update. Windows installers, signed widget MSIX, certificate, and manual installer are included.
+          releaseDraft: true
           prerelease: false
           includeUpdaterJson: true
           args: --bundles nsis,msi --config updater.config.json
@@ -121,6 +134,15 @@ jobs:
             ./artifacts/widget/AIUsageDock.Widget.cer `
             ./artifacts/widget/install-widget.ps1 `
             --clobber
+
+      - name: Publish complete release
+        if: github.event_name != 'workflow_dispatch' || inputs.draft == false
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release edit "${{ needs.prepare.outputs.tag }}" --draft=false --latest
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
   # Linux and macOS builds are intentionally left commented until the
   # platform-specific tray/window behavior has been verified.
