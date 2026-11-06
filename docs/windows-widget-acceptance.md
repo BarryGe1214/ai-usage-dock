@@ -4,7 +4,7 @@
 
 ## 测试版本与前提
 
-本清单针对 v0.1.9 修复版。v0.1.7 可作为故障基线，但不包含本轮修复。完整验收须使用同一版本的主程序和小组件。
+本清单针对 v0.1.10 修复版。v0.1.7 可作为故障基线，但不包含本轮修复。完整验收须使用同一版本的主程序和小组件。
 
 自动安装只在 Windows **release** 构建启用，debug 构建需点击设置页的安装按钮。主程序按自身版本从同名 GitHub Release 下载 MSIX/CER，因此完整修复版验收需要同一版本的主程序、MSIX 和固定证书。单独本地构建修改后的 v0.1.7 主程序仍会下载旧版 v0.1.7 Provider，不能验证 Provider 修复。
 
@@ -15,7 +15,7 @@
 在仓库根目录运行 Windows PowerShell 5.1 或 PowerShell 7：
 
 ```powershell
-powershell -NoProfile -File .\scripts\Test-WindowsWidget.ps1 -ExpectedVersion 0.1.9.0 -WatchSeconds 90 -ReportPath .\widget-acceptance.json
+powershell -NoProfile -File .\scripts\Test-WindowsWidget.ps1 -ExpectedVersion 0.1.10.0 -WatchSeconds 90 -ReportPath .\widget-acceptance.json
 ```
 
 替换 ExpectedVersion 为被测 MSIX 的四段版本。脚本检查当前用户包注册、版本、Publisher、包状态、feed JSON，并等待主程序刷新产生新时间戳。看到提示后，在主程序点击刷新。报告仅包含这些检查结果和账号数量，不包含 API Key、账号名称、额度明细。

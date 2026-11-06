@@ -541,10 +541,16 @@ mod windows_process_tests {
         let stderr = String::from_utf8(output.stderr).unwrap();
         assert!(!output.status.success());
         assert!(stderr.contains("Package not found:"), "{stderr}");
-        assert!(
-            stderr.contains(&expected_path.display().to_string()),
+        // PowerShell expands short paths (e.g. RUNNER~1) when resolving
+        // PSScriptRoot. Compare the actual directory, not its spelling.
+        let reported_path = Path::new(stderr.trim().strip_prefix("Package not found: ").unwrap());
+        assert_eq!(reported_path.file_name(), expected_path.file_name());
+        assert_eq!(
+            reported_path.parent().unwrap().canonicalize().unwrap(),
+            directory.canonicalize().unwrap(),
             "{stderr}"
         );
+        assert!(!stderr.contains('\u{fffd}'), "{stderr}");
         std::fs::remove_dir_all(directory).unwrap();
     }
 }
