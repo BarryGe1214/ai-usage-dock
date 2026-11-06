@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [string]$ExpectedVersion = '0.1.8.0',
+    [string]$ExpectedVersion = '0.1.9.0',
     [ValidateRange(0, 600)][int]$WatchSeconds = 0,
     [switch]$ExpectUnsupported,
     [string]$ReportPath

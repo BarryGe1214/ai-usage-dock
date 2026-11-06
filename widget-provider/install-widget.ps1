@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
-    [string]$MsixPath = (Join-Path $PSScriptRoot 'AIUsageDock.Widget.msix'),
-    [string]$CertPath = (Join-Path $PSScriptRoot 'AIUsageDock.Widget.cer'),
+    [string]$MsixPath = '',
+    [string]$CertPath = '',
     [switch]$NoTrustPrompt
 )
 
@@ -105,6 +105,20 @@ function Install-WidgetPackage([string]$PackagePath, [string]$CertificatePath, [
 # Dot-sourcing exposes functions for regression tests without changing trust.
 if ($MyInvocation.InvocationName -ne '.') {
     try {
+        # Resolve defaults only after parameter binding and UTF-8 initialization.
+        # The app passes absolute paths; the fallback supports manual -File use.
+        if ([string]::IsNullOrEmpty($MsixPath) -or [string]::IsNullOrEmpty($CertPath)) {
+            $installerDirectory = $PSScriptRoot
+            if ([string]::IsNullOrEmpty($installerDirectory)) {
+                $installerDirectory = Split-Path -Parent $MyInvocation.MyCommand.Path
+            }
+            if ([string]::IsNullOrEmpty($MsixPath)) {
+                $MsixPath = Join-Path $installerDirectory 'AIUsageDock.Widget.msix'
+            }
+            if ([string]::IsNullOrEmpty($CertPath)) {
+                $CertPath = Join-Path $installerDirectory 'AIUsageDock.Widget.cer'
+            }
+        }
         Install-WidgetPackage -PackagePath $MsixPath -CertificatePath $CertPath -NoTrustPrompt:$NoTrustPrompt
     }
     catch {

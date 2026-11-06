@@ -464,6 +464,12 @@ fn run_powershell_file(script: &Path, allow_trust_prompt: bool) -> Result<(), St
                 "-File",
             ])
             .arg(script);
+        let directory = script.parent().ok_or("无法确定小组件安装脚本目录")?;
+        command
+            .arg("-MsixPath")
+            .arg(directory.join("AIUsageDock.Widget.msix"))
+            .arg("-CertPath")
+            .arg(directory.join("AIUsageDock.Widget.cer"));
         if !allow_trust_prompt {
             command.arg("-NoTrustPrompt");
         }
@@ -492,5 +498,53 @@ fn run_powershell_file(script: &Path, allow_trust_prompt: bool) -> Result<(), St
     {
         let _ = (script, allow_trust_prompt);
         Err("仅支持 Windows".to_string())
+    }
+}
+
+#[cfg(all(test, windows))]
+mod windows_process_tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn powershell_file_entrypoint_preserves_paths_and_utf8_errors() {
+        let directory = std::env::temp_dir().join(format!(
+            "widget 测试 user's folder-{}",
+            uuid::Uuid::new_v4()
+        ));
+        std::fs::create_dir_all(&directory).unwrap();
+        let script = write_install_script(&directory).await.unwrap();
+        let expected_path = directory.join("AIUsageDock.Widget.msix");
+
+        // Invoke the same Windows PowerShell 5.1 process path as the application.
+        // Missing package stops execution before certificate trust or deployment.
+        let error = run_powershell_file(&script, false).unwrap_err();
+        assert!(error.contains("Package not found:"), "{error}");
+        assert!(
+            error.contains(&expected_path.display().to_string()),
+            "{error}"
+        );
+        assert!(!error.contains('\u{fffd}'), "{error}");
+
+        // The downloaded manual installer must work without explicit paths too.
+        let output = std::process::Command::new("powershell.exe")
+            .args([
+                "-NoProfile",
+                "-NonInteractive",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-File",
+            ])
+            .arg(&script)
+            .arg("-NoTrustPrompt")
+            .output()
+            .unwrap();
+        let stderr = String::from_utf8(output.stderr).unwrap();
+        assert!(!output.status.success());
+        assert!(stderr.contains("Package not found:"), "{stderr}");
+        assert!(
+            stderr.contains(&expected_path.display().to_string()),
+            "{stderr}"
+        );
+        std::fs::remove_dir_all(directory).unwrap();
     }
 }

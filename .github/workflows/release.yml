@@ -116,6 +116,8 @@ jobs:
           releaseBody: |
             AI Usage Dock __VERSION__
 
+            - Fix the Windows PowerShell installer startup error (Join-Path / empty Path) introduced in v0.1.8. Package paths are now passed explicitly and manual defaults are resolved after startup.
+            - Add Windows PowerShell 5.1 process-level tests covering Chinese paths, spaces, apostrophes, and UTF-8 errors.
             - Fix Windows widget installation error 0x800B0109. If certificate authorization is needed, click Install in Settings and approve the Windows UAC prompt once.
             - Fix garbled PowerShell errors, download progress, and installed-version verification.
             - Fix missed updates across multiple widget cards and allow atomic feed replacement.
