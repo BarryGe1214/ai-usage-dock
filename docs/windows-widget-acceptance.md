@@ -4,7 +4,7 @@
 
 ## 测试版本与前提
 
-本清单针对 v0.1.10 修复版。v0.1.7 可作为故障基线，但不包含本轮修复。完整验收须使用同一版本的主程序和小组件。
+本清单针对 v0.1.11 修复版。v0.1.7 可作为故障基线，但不包含本轮修复。完整验收须使用同一版本的主程序和小组件。
 
 自动安装只在 Windows **release** 构建启用，debug 构建需点击设置页的安装按钮。主程序按自身版本从同名 GitHub Release 下载 MSIX/CER，因此完整修复版验收需要同一版本的主程序、MSIX 和固定证书。单独本地构建修改后的 v0.1.7 主程序仍会下载旧版 v0.1.7 Provider，不能验证 Provider 修复。
 
@@ -15,7 +15,7 @@
 在仓库根目录运行 Windows PowerShell 5.1 或 PowerShell 7：
 
 ```powershell
-powershell -NoProfile -File .\scripts\Test-WindowsWidget.ps1 -ExpectedVersion 0.1.10.0 -WatchSeconds 90 -ReportPath .\widget-acceptance.json
+powershell -NoProfile -File .\scripts\Test-WindowsWidget.ps1 -ExpectedVersion 0.1.11.0 -WatchSeconds 90 -ReportPath .\widget-acceptance.json
 ```
 
 替换 ExpectedVersion 为被测 MSIX 的四段版本。脚本检查当前用户包注册、版本、Publisher、包状态、feed JSON，并等待主程序刷新产生新时间戳。看到提示后，在主程序点击刷新。报告仅包含这些检查结果和账号数量，不包含 API Key、账号名称、额度明细。
@@ -55,3 +55,12 @@ v0.1.7 仅向 CurrentUser\TrustedPeople 导入证书，截图中的 0x800B0109 �
 额外验收：拒绝 UAC 后应显示错误且不继续安装；再次点击安装并授权后应成功；证书已受信任时再次安装不应弹 UAC。即便用其他管理员账号批准，也须在原用户运行 `Get-AppxPackage` 检查。不得把证书放入 Trusted Root，也不要关闭包签名验证。
 
 本轮提供的 v0.1.7 修复验证包保留官方原始 MSIX，只更新安装脚本；可验证证书信任修复并恢复现有应用的小组件。它不包含正在开发的 Provider 和主程序二进制修复，完整回归仍需修复版构建。
+
+## v0.1.11 运行时回归
+
+- 从 v0.1.10 在软件内升级，确认小组件包版本为 0.1.11.0。
+- 在 Win+W 的添加列表中选择 AI Usage Dock，确认卡片成功添加并显示当前额度。
+- 更新主程序数据，确认卡片同步变化；添加第二张卡片，确认两张均刷新。
+- 查看 widget-provider.log 的最新时间段，确认不再出现 WidgetManager 激活的 0x80040154。旧日志不会自动清空。
+
+构建流程将 NuGet Restore 与 Publish 分成两次 MSBuild 调用，确保干净环境加载 Windows App SDK 的自包含部署目标。签名前检查 Microsoft.Windows.Widgets.dll、可执行文件中的 WidgetManager 激活注册，并通过 --check-runtime 实际解析激活工厂。此检查不调用 WidgetManager.GetDefault()，因此可在没有小组件面板的 Windows Server CI 运行；它不替代 Windows 11 上的添加和刷新验收。

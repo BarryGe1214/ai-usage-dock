@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [string]$ExpectedVersion = '0.1.10.0',
+    [string]$ExpectedVersion = '0.1.11.0',
     [ValidateRange(0, 600)][int]$WatchSeconds = 0,
     [switch]$ExpectUnsupported,
     [string]$ReportPath
@@ -23,6 +23,7 @@ if (-not $ExpectUnsupported) {
     Add-Check 'Package registered' ($null -ne $package) 'Current user package registration'
     if ($package) {
         Add-Check 'Package version' ($package.Version.ToString() -eq $ExpectedVersion) "Expected $ExpectedVersion; found $($package.Version)"
+        Add-Check 'Widgets native runtime' (Test-Path -LiteralPath (Join-Path $package.InstallLocation 'Microsoft.Windows.Widgets.dll')) 'Self-contained WidgetManager implementation'
         Add-Check 'Publisher' ($package.Publisher -eq 'CN=AI Usage Dock') $package.Publisher
         Add-Check 'Package status' ($package.Status.ToString() -eq 'Ok') $package.Status.ToString()
     }

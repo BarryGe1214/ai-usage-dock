@@ -116,12 +116,11 @@ jobs:
           releaseBody: |
             AI Usage Dock __VERSION__
 
-            - Fix the Windows PowerShell installer startup error (Join-Path / empty Path) introduced in v0.1.8. Package paths are now passed explicitly and manual defaults are resolved after startup.
-            - Add Windows PowerShell 5.1 process-level tests covering Chinese paths, spaces, apostrophes, and UTF-8 errors.
-            - Fix Windows widget installation error 0x800B0109. If certificate authorization is needed, click Install in Settings and approve the Windows UAC prompt once.
-            - Fix garbled PowerShell errors, download progress, and installed-version verification.
-            - Fix missed updates across multiple widget cards and allow atomic feed replacement.
-            - Update from Settings → Software update. Windows installers, signed widget MSIX, certificate, and manual installer are included.
+            - Fix widget addition failing with WidgetManager 0x80040154 (class not registered): clean builds now include the native Windows App SDK runtime and activation manifest.
+            - Verify the published native DLL, embedded activation registration, and actual WinRT factory activation before signing the widget package.
+            - Use the MTA COM server entrypoint for widget provider callbacks.
+            - Update from Settings → Software update, then retry adding AI Usage Dock in Win+W. Keep Windows Developer Mode enabled for this sideloaded provider.
+            - Includes signed Windows installers, widget MSIX, certificate, and manual installer.
           releaseDraft: true
           prerelease: false
           includeUpdaterJson: true
