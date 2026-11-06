@@ -17,6 +17,8 @@ if ($env:OS -ne 'Windows_NT') { throw 'Run this script on Windows.' }
 $build = [Environment]::OSVersion.Version.Build
 Add-Check 'OS' ($build -ge 22621 -xor [bool]$ExpectUnsupported) "Windows build $build"
 if (-not $ExpectUnsupported) {
+    $developerMode = Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock' -Name 'AllowDevelopmentWithoutDevLicense' -ErrorAction SilentlyContinue
+    Add-Check 'Developer mode for sideloaded widgets' ($developerMode.AllowDevelopmentWithoutDevLicense -eq 1) 'Required by Microsoft for sideloaded widget providers; package installation alone does not establish widget discovery'
     $package = Get-AppxPackage -Name 'BarryGe1214.AIUsageDock.Widget' | Select-Object -First 1
     Add-Check 'Package registered' ($null -ne $package) 'Current user package registration'
     if ($package) {

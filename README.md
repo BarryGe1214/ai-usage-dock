@@ -56,6 +56,8 @@ Codex 的 `app-server` 协议由本机 Codex CLI 提供，不同 Codex 版本可
 
 > 这是 Windows 11 自带的 `Win+W` 小组件面板里的原生卡片，不是应用的悬浮窗。它通过独立的 MSIX 包提供，只有 Windows 11 22H2（build 22621）及以上支持。
 
+**GitHub 侧载要求：** 请先在 Windows 设置中搜索并开启“开发人员模式”。[微软官方 Widgets 示例](https://github.com/microsoft/WindowsAppSDK-Samples/tree/main/Samples/Widgets#widgetprovider-app-distribution) 明确要求侧载 Provider 开启此模式；仅显示“安装完成”并不代表它已出现在 Win+W 的添加列表中。无需开启设备门户或设备发现。
+
 从 v0.1.7 开始，主程序会在启动时自动安装或更新同版本的小组件，无需手动下载。设置页的“Windows 11 小组件”一栏会显示当前状态，也可以手动重新安装。
 
 如果自动安装失败（例如系统策略禁止侧载），Release 中仍附带手动安装文件：

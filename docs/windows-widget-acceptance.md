@@ -8,7 +8,7 @@
 
 自动安装只在 Windows **release** 构建启用，debug 构建需点击设置页的安装按钮。主程序按自身版本从同名 GitHub Release 下载 MSIX/CER，因此完整修复版验收需要同一版本的主程序、MSIX 和固定证书。单独本地构建修改后的 v0.1.7 主程序仍会下载旧版 v0.1.7 Provider，不能验证 Provider 修复。
 
-准备 Windows 11 22H2+ x64 测试机、可联网且可侧载的普通用户会话。主程序至少配置一个可刷新的账号。升级场景另外准备已安装 v0.1.6 小组件的机器或虚拟机快照。保留原固定签名证书。
+准备 Windows 11 22H2+ x64 测试机、可联网且可侧载的普通用户会话。**通过 GitHub MSIX 侧载的小组件还需在 Windows 设置中开启“开发人员模式”**；仅允许侧载可信应用、导入证书或完成 Add-AppxPackage 不等同于满足 Widgets 的发现条件。无需开启设备门户或设备发现。微软官方依据：[Widgets 示例的分发要求](https://github.com/microsoft/WindowsAppSDK-Samples/tree/main/Samples/Widgets#widgetprovider-app-distribution)。主程序至少配置一个可刷新的账号。升级场景另外准备已安装 v0.1.6 小组件的机器或虚拟机快照。保留原固定签名证书。
 
 ## 只读检查脚本
 
