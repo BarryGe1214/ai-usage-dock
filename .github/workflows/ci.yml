@@ -90,3 +90,22 @@ jobs:
             Write-Output "::error title=Windows native test failure::$escaped"
           }
           exit $result
+
+  widget-package:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      - name: Build and activate self-contained widget runtime
+        shell: pwsh
+        run: |
+          try {
+            ./widget-provider/build-widget.ps1
+          } catch {
+            $detail = $_ | Out-String
+            $escaped = $detail.Replace('%', '%25').Replace("`r", '%0D').Replace("`n", '%0A')
+            Write-Output "::error title=Widget package verification failed::$escaped"
+            throw
+          }

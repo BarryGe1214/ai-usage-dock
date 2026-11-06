@@ -92,7 +92,12 @@ Write-Host "Publishing provider executable..."
 $visualStudio = Find-VisualStudio
 Push-Location $root
 try {
-    & $visualStudio.MSBuild $project /t:Restore,Publish `
+    # Restore must finish in a separate evaluation: a clean checkout has no
+    # NuGet imports yet, including the SDK self-contained payload/manifest targets.
+    & $visualStudio.MSBuild $project /t:Restore /p:Configuration=$Configuration /p:Platform=x64 /p:RuntimeIdentifier=$Runtime /nologo /v:minimal
+    if ($LASTEXITCODE -ne 0) { throw "MSBuild restore failed with exit code $LASTEXITCODE" }
+
+    & $visualStudio.MSBuild $project /t:Publish `
         /p:Configuration=$Configuration `
         /p:Platform=x64 `
         /p:RuntimeIdentifier=$Runtime `
@@ -114,6 +119,32 @@ if ($LASTEXITCODE -ne 0) { throw "MSBuild publish failed with exit code $LASTEXI
 
 $exePath = Join-Path $publishDir "AiUsageDock.WidgetProvider.exe"
 if (-not (Test-Path $exePath)) { throw "Expected provider executable was not produced: $exePath" }
+
+# Validate the real publish output before signing or uploading anything.
+if (-not (Test-Path (Join-Path $publishDir "Microsoft.Windows.Widgets.dll"))) {
+    throw "Self-contained publish omitted Microsoft.Windows.Widgets.dll."
+}
+$mt = Find-SdkTool "mt"
+$embeddedManifest = Join-Path $root "obj\published-app.manifest"
+& $mt -nologo "-inputresource:$exePath;#1" "-out:$embeddedManifest"
+if ($LASTEXITCODE -ne 0) { throw "Could not extract the executable activation manifest." }
+[xml]$activationManifest = Get-Content $embeddedManifest -Raw
+$managerRegistration = $activationManifest.SelectSingleNode("//*[local-name()='file' and @name='Microsoft.Windows.Widgets.dll']/*[local-name()='activatableClass' and @name='Microsoft.Windows.Widgets.Providers.WidgetManager']")
+if (-not $managerRegistration) { throw "WidgetManager activation registration is missing from the executable." }
+
+# This works on Windows Server CI without a Widgets board: resolve the native
+# activation factory, but do not call GetDefault() (which needs the host).
+$probe = Start-Process -FilePath $exePath -ArgumentList '--check-runtime' -PassThru
+if (-not $probe.WaitForExit(30000)) {
+    $probe.Kill()
+    throw "Widgets runtime activation check timed out."
+}
+if ($probe.ExitCode -ne 0) {
+    $log = Join-Path $env:LOCALAPPDATA 'com.barryge1214.aiusagedock\widget-provider.log'
+    if (Test-Path $log) { Get-Content $log -Tail 15 | Write-Host }
+    throw "Widgets runtime activation check failed with exit code $($probe.ExitCode)."
+}
+Write-Host "Widgets native runtime and activation manifest verified."
 
 Write-Host "Assembling package payload..."
 Copy-Item -Path (Join-Path $publishDir "*") -Destination $stageDir -Recurse -Force

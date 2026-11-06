@@ -18,10 +18,27 @@ internal static class Program
     [DllImport("ole32.dll")]
     private static extern int CoRevokeClassObject(uint dwRegister);
 
-    [STAThread]
-    private static void Main()
+    [MTAThread]
+    private static int Main(string[] args)
     {
         ComWrappersSupport.InitializeComWrappers();
+
+        if (args.Contains("--check-runtime"))
+        {
+            try
+            {
+                using var managerFactory = ActivationFactory.Get(
+                    "Microsoft.Windows.Widgets.Providers.WidgetManager",
+                    new Guid("00000035-0000-0000-C000-000000000046"));
+                _ = new Microsoft.Windows.Widgets.Providers.WidgetUpdateRequestOptions("runtime-check");
+                return 0;
+            }
+            catch (Exception exception)
+            {
+                Log.Error("Widgets runtime activation check failed", exception);
+                return 1;
+            }
+        }
 
         var factory = new WidgetProviderFactory<UsageWidgetProvider>();
         Marshal.ThrowExceptionForHR(
@@ -36,5 +53,7 @@ internal static class Program
             CoRevokeClassObject(cookie);
             GC.KeepAlive(factory);
         }
+
+        return 0;
     }
 }
